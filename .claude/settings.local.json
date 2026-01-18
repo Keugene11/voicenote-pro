@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(powershell -Command \"Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(npm run dev:*)",
+      "Bash(npx expo start)"
     ]
   }
 }
