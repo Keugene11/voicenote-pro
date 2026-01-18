@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "VoiceNote",
+    "slug": "voicenote",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8F4F0"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourname.voicenote",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "VoiceNote needs access to your microphone to record voice notes."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F8F4F0"
+      },
+      "package": "com.yourname.voicenote",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ],
+      "usesCleartextTraffic": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow VoiceNote to access your microphone to record voice notes."
+        }
+      ],
+      "@react-native-voice/voice"
+    ]
+  }
+}
