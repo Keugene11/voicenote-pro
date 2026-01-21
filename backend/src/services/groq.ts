@@ -17,32 +17,203 @@ export type ToneType =
   | 'meeting_notes'
   | 'original';
 
+/**
+ * Extract potential search terms (companies, technologies, proper nouns) from text
+ */
+function extractSearchTerms(text: string): string[] {
+  // Match capitalized words (potential proper nouns), tech terms, and company-like names
+  const patterns = [
+    /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g, // Capitalized words/phrases
+    /\b(?:Google|Apple|Microsoft|Amazon|Meta|Facebook|Netflix|Tesla|OpenAI|Anthropic|IBM|Oracle|Salesforce|Adobe|Nvidia|Intel|AMD|Spotify|Twitter|LinkedIn|Uber|Airbnb|Stripe|Shopify|Slack|Zoom|Discord|GitHub|GitLab|Docker|Kubernetes|AWS|Azure|GCP)\b/gi, // Common tech companies
+    /\b(?:React|Angular|Vue|Node|Python|JavaScript|TypeScript|Java|Kotlin|Swift|Rust|Go|Ruby|PHP|SQL|MongoDB|PostgreSQL|Redis|GraphQL|REST|API)\b/gi, // Tech terms
+  ];
+
+  const terms = new Set<string>();
+  for (const pattern of patterns) {
+    const matches = text.match(pattern) || [];
+    matches.forEach(match => {
+      if (match.length > 2 && !['The', 'And', 'For', 'But', 'Not', 'You', 'All', 'Can', 'Had', 'Her', 'Was', 'One', 'Our', 'Out'].includes(match)) {
+        terms.add(match);
+      }
+    });
+  }
+
+  return Array.from(terms).slice(0, 5); // Limit to 5 terms
+}
+
+/**
+ * Search Wikipedia for information about a term
+ */
+async function searchWikipedia(term: string): Promise<string | null> {
+  try {
+    const searchUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`;
+    const response = await fetch(searchUrl, {
+      headers: { 'User-Agent': 'VoiceNotePro/1.0' }
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json() as { extract?: string; description?: string };
+    if (data.extract) {
+      // Return first 2 sentences max
+      const sentences = data.extract.split('. ').slice(0, 2).join('. ');
+      return `${term}: ${sentences}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Search DuckDuckGo Instant Answers for information
+ */
+async function searchDuckDuckGo(term: string): Promise<string | null> {
+  try {
+    const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(term)}&format=json&no_html=1&skip_disambig=1`;
+    const response = await fetch(searchUrl);
+
+    if (!response.ok) return null;
+
+    const data = await response.json() as { Abstract?: string; AbstractText?: string };
+    if (data.AbstractText || data.Abstract) {
+      const resultText = data.AbstractText || data.Abstract || '';
+      const sentences = resultText.split('. ').slice(0, 2).join('. ');
+      return `${term}: ${sentences}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Gather contextual information from web searches
+ */
+async function gatherContext(text: string): Promise<string> {
+  const terms = extractSearchTerms(text);
+  if (terms.length === 0) return '';
+
+  console.log('Searching for context on:', terms);
+
+  const contextPromises = terms.map(async (term) => {
+    // Try Wikipedia first, then DuckDuckGo
+    const wikiResult = await searchWikipedia(term);
+    if (wikiResult) return wikiResult;
+
+    const ddgResult = await searchDuckDuckGo(term);
+    return ddgResult;
+  });
+
+  const results = await Promise.all(contextPromises);
+  const validResults = results.filter((r): r is string => r !== null);
+
+  if (validResults.length === 0) return '';
+
+  return '\n\nREAL-WORLD CONTEXT (use this to enhance the text with facts, but DO NOT cite sources):\n' + validResults.join('\n');
+}
+
 const tonePrompts: Record<ToneType, string> = {
-  professional: `Rewrite the following text to sound more professional and polished.
-    Maintain the original meaning but improve clarity, remove filler words, and use appropriate business language.
-    Keep the same general length unless brevity significantly improves the message.`,
+  professional: `You are an expert writer who adapts your style to match the content. Transform this spoken text into polished, compelling prose.
 
-  casual: `Rewrite the following text in a friendly, conversational tone.
-    Keep it natural and easy to read while maintaining the core message.
-    Feel free to use contractions and casual phrasing.`,
+    ABSOLUTE RULES:
+    - Output ONLY the rewritten text, nothing else
+    - NO explanations, notes, commentary, or meta-text
+    - Remove filler words (um, uh, like, you know, basically, so, actually)
 
-  concise: `Summarize and condense the following text to its essential points.
-    Remove all unnecessary words and filler. Make it as brief as possible while retaining the key information.
-    Use bullet points if it improves clarity.`,
+    CONTEXT-AWARE ENHANCEMENT:
+    Analyze what the person is talking about and adapt accordingly:
 
-  email: `Transform the following text into a well-structured email format.
-    Include an appropriate greeting and sign-off.
-    Organize the content clearly with proper paragraphs.
-    Maintain a professional yet approachable tone.`,
+    FOR JOB APPLICATIONS / CAREER CONTENT:
+    - Sound confident, articulate, and genuinely impressive
+    - Use smooth, flowing prose that's easy to read
+    - Highlight achievements with specific impact where possible
+    - If they mention projects, elaborate on technical skills, languages, frameworks, or tools they likely used
+    - Make it sound like someone you'd want to hire - capable, thoughtful, results-driven
+    - Add relevant industry knowledge or context that shows expertise
 
-  meeting_notes: `Convert the following text into organized meeting notes.
-    Structure it with:
-    - Key discussion points
-    - Action items (if any)
-    - Decisions made (if any)
-    Use bullet points and clear headings for easy scanning.`,
+    FOR PROJECT DESCRIPTIONS / TECHNICAL WORK:
+    - Clearly explain what was built and why it matters
+    - Infer and mention relevant technologies, languages, frameworks (React, Python, Node.js, etc.)
+    - Highlight problem-solving and technical decisions
+    - Quantify impact if possible (performance improvements, user growth, etc.)
+    - Sound like a skilled engineer who communicates well
 
-  original: `Return the text exactly as provided, only fixing obvious grammatical errors and typos.`,
+    FOR IDEAS / BRAINSTORMING:
+    - Organize thoughts clearly and logically
+    - Expand on promising concepts
+    - Add structure without losing creativity
+    - Keep the energy and enthusiasm
+
+    FOR PERSONAL / CASUAL CONTENT:
+    - Keep it natural and conversational
+    - Light personality is fine here
+    - Still polish the prose but don't over-formalize
+
+    FOR EVERYTHING ELSE:
+    - Match the tone to the subject matter
+    - Always improve clarity and flow
+    - Add relevant context that enhances understanding
+    - Make the writing interesting without being forced`,
+
+  casual: `You are a skilled writer helping someone sound articulate and natural. Rewrite this in a friendly, conversational tone.
+
+    RULES:
+    - Output ONLY the rewritten text, nothing else
+    - NO meta-commentary or explanations
+    - Remove filler words but keep personality
+
+    STYLE:
+    - Natural and easy to read
+    - Use contractions, casual phrasing
+    - Keep their voice but make it flow better
+    - Add interesting details or context where it fits naturally
+    - Sound like a smart, articulate person having a conversation`,
+
+  concise: `You are a master editor. Distill this to its essential points with clarity and impact.
+
+    RULES:
+    - Output ONLY the condensed text, nothing else
+    - Remove ALL unnecessary words
+    - Use bullet points for multiple items
+    - Every sentence must earn its place
+    - Preserve key information and insights
+    - Be brief but complete`,
+
+  email: `You are a professional communication expert. Transform this into a polished, effective email.
+
+    RULES:
+    - Output ONLY the email content
+    - Include appropriate greeting and sign-off
+    - Clear, well-organized paragraphs
+    - Professional but personable tone
+
+    ENHANCEMENTS:
+    - If mentioning companies or people, show you've done your research with relevant context
+    - Clear call-to-action where appropriate
+    - Confident without being pushy
+    - Easy to read and respond to`,
+
+  meeting_notes: `You are an executive assistant creating clear, actionable meeting notes.
+
+    RULES:
+    - Output ONLY the formatted notes
+    - Use clear structure with headings
+    - Include: Key Points, Decisions, Action Items (as relevant)
+    - Use bullet points for easy scanning
+
+    ENHANCEMENTS:
+    - Add context that clarifies decisions
+    - Ensure action items are specific and assignable
+    - Make it useful for someone who wasn't there`,
+
+  original: `Clean up this text with minimal changes. Fix errors, remove filler words (um, uh, like, you know), improve flow.
+
+    RULES:
+    - Output ONLY the cleaned text
+    - NO commentary
+    - Preserve their voice and style
+    - Just make it read smoothly`,
 };
 
 export interface TranscriptionResult {
@@ -118,7 +289,7 @@ export async function transcribeAudio(audioFilePath: string): Promise<Transcript
 }
 
 /**
- * Rephrase text using Groq's LLM (llama-3.3-70b)
+ * Rephrase text using Groq's LLM (llama-3.3-70b) with web-enhanced context
  */
 export async function rephraseText(
   text: string,
@@ -129,9 +300,12 @@ export async function rephraseText(
       throw new Error('Groq API key not configured. Please set GROQ_API_KEY in your .env file.');
     }
 
-    const systemPrompt = tonePrompts[tone] || tonePrompts.professional;
+    // Gather real-world context from web searches
+    const webContext = await gatherContext(text);
+    const systemPrompt = (tonePrompts[tone] || tonePrompts.professional) + webContext;
 
     console.log('Rephrasing text with tone:', tone);
+    console.log('Web context gathered:', webContext ? 'Yes' : 'No');
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
