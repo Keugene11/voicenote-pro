@@ -10,6 +10,26 @@ export interface Note {
   updatedAt: string;
 }
 
+export interface Suggestion {
+  type: 'improvement' | 'addition' | 'structure' | 'tip';
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export type ContentIntent =
+  | 'job_application'
+  | 'college_essay'
+  | 'scholarship_application'
+  | 'competition_entry'
+  | 'club_application'
+  | 'cover_letter'
+  | 'personal_statement'
+  | 'project_description'
+  | 'email_draft'
+  | 'meeting_notes'
+  | 'general';
+
 export interface TranscribeResponse {
   success: boolean;
   data?: {
@@ -17,6 +37,8 @@ export interface TranscribeResponse {
     processedText: string;
     tone: string;
     duration: number;
+    detectedIntent?: ContentIntent;
+    suggestions?: Suggestion[];
   };
   error?: string;
 }
@@ -61,6 +83,8 @@ export async function transcribeAudio(
           processedText: result.data.rephrasing?.rephrasedText || '',
           tone: result.data.rephrasing?.tone || 'professional',
           duration: result.data.transcription?.duration || 0,
+          detectedIntent: result.data.rephrasing?.detectedIntent,
+          suggestions: result.data.rephrasing?.suggestions || [],
         },
       };
     }

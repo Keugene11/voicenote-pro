@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Mic, Square, Loader2, Copy, Check, RotateCcw } from 'lucide-react';
+import { Mic, Square, Loader2, Copy, Check, RotateCcw, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRecorder } from '@/hooks/useRecorder';
-import { transcribeAudio } from '@/lib/api';
+import { transcribeAudio, ContentIntent, Suggestion } from '@/lib/api';
 
 interface RecorderProps {
   token?: string | null;
@@ -16,6 +16,39 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+const intentLabels: Record<ContentIntent, string> = {
+  job_application: '💼 Job Application',
+  college_essay: '🎓 College Essay',
+  scholarship_application: '🏆 Scholarship',
+  competition_entry: '🏅 Competition Entry',
+  club_application: '👥 Club Application',
+  cover_letter: '📝 Cover Letter',
+  personal_statement: '✍️ Personal Statement',
+  project_description: '🔧 Project Description',
+  email_draft: '📧 Email',
+  meeting_notes: '📋 Meeting Notes',
+  general: '📄 Note',
+};
+
+const priorityColors: Record<string, string> = {
+  high: 'border-red-500/50 bg-red-500/10',
+  medium: 'border-amber-500/50 bg-amber-500/10',
+  low: 'border-blue-500/50 bg-blue-500/10',
+};
+
+const priorityDotColors: Record<string, string> = {
+  high: 'bg-red-500',
+  medium: 'bg-amber-500',
+  low: 'bg-blue-500',
+};
+
+interface RecordingResult {
+  original: string;
+  processed: string;
+  detectedIntent?: ContentIntent;
+  suggestions?: Suggestion[];
+}
+
 export function Recorder({ token, onNoteCreated }: RecorderProps) {
   const {
     isRecording,
@@ -26,9 +59,10 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
   } = useRecorder();
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<{ original: string; processed: string } | null>(null);
+  const [result, setResult] = useState<RecordingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   const handleStartRecording = async () => {
     setError(null);
@@ -53,6 +87,8 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
         setResult({
           original: response.data.originalText,
           processed: response.data.processedText,
+          detectedIntent: response.data.detectedIntent,
+          suggestions: response.data.suggestions,
         });
         onNoteCreated?.();
       } else {
@@ -82,6 +118,16 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
   if (result) {
     return (
       <div className="space-y-6">
+        {/* Detected Intent Badge */}
+        {result.detectedIntent && result.detectedIntent !== 'general' && (
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1.5 bg-purple-500/20 border border-purple-500/30 rounded-full text-purple-300 text-sm font-medium">
+              {intentLabels[result.detectedIntent]}
+            </span>
+            <span className="text-gray-500 text-sm">AI detected content type</span>
+          </div>
+        )}
+
         {/* Enhanced Result */}
         <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-2xl p-6 border border-purple-500/30">
           <div className="flex items-center justify-between mb-4">
@@ -98,6 +144,47 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
           </div>
           <p className="text-white text-lg leading-relaxed whitespace-pre-wrap">{result.processed}</p>
         </div>
+
+        {/* AI Suggestions */}
+        {result.suggestions && result.suggestions.length > 0 && (
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowSuggestions(!showSuggestions)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-amber-500/10 hover:bg-amber-500/15 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-amber-400" />
+                <span className="font-medium text-white">Suggestions to Improve</span>
+                <span className="text-amber-400/70 text-sm">({result.suggestions.length})</span>
+              </div>
+              {showSuggestions ? (
+                <ChevronUp className="w-5 h-5 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              )}
+            </button>
+
+            {showSuggestions && (
+              <div className="p-4 space-y-3">
+                {result.suggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg border ${priorityColors[suggestion.priority]}`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`w-2 h-2 rounded-full ${priorityDotColors[suggestion.priority]}`} />
+                      <span className="font-medium text-white">{suggestion.title}</span>
+                      <span className="ml-auto text-xs text-gray-500 capitalize px-2 py-0.5 bg-gray-800 rounded">
+                        {suggestion.type}
+                      </span>
+                    </div>
+                    <p className="text-gray-400 text-sm">{suggestion.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Original (collapsed) */}
         <details className="bg-gray-800/50 rounded-xl">

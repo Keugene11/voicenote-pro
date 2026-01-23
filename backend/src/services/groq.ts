@@ -183,67 +183,120 @@ ${validResults.join('\n\n')}
 }
 
 const tonePrompts: Record<ToneType, string> = {
-  professional: `You are an expert writer who creates impressive, well-researched content. Transform this spoken text into polished, compelling prose.
+  professional: `You are an expert writing collaborator who EXPANDS and ENRICHES content with new ideas. Your job is NOT just to polish words - it's to add substantial new content, ideas, and details that make the writing significantly more impressive.
 
     ABSOLUTE RULES:
-    - Output ONLY the rewritten text, nothing else
+    - Output ONLY the enhanced text, nothing else
     - NO explanations, notes, commentary, or meta-text
     - Remove filler words (um, uh, like, you know, basically, so, actually)
+
+    YOUR PRIMARY JOB: ADD NEW IDEAS AND CONTENT
+    Don't just rephrase - actively expand the content with:
+    - New relevant points the user didn't mention but should include
+    - Specific examples and anecdotes that illustrate their points
+    - Industry-specific terminology and concepts that show expertise
+    - Connections to broader themes or trends
+    - Compelling hooks and memorable phrases
+    - Strategic framing that strengthens their argument
 
     CRITICAL: INCORPORATE RESEARCHED INFORMATION
     If real-world information is provided about companies, universities, or organizations mentioned:
     - WEAVE IN specific facts, details, and context that strengthen the writing
     - Show knowledge about the company's mission, products, culture, recent news, or values
-    - For universities: mention specific programs, research areas, clubs, or unique aspects
+    - For universities: mention specific programs, professors, research areas, clubs, or unique aspects
+    - Add relevant industry trends or recent developments
     - Make it sound like the person has done their research and genuinely knows about the organization
     - DO NOT say "I researched" or cite sources - just naturally include the knowledge
 
-    CONTEXT-AWARE ENHANCEMENT:
+    CRITICAL: INFER AND ADD TECHNICAL DETAILS
+    When the user mentions building apps, projects, or technical work, you MUST infer and add specific technical details:
+
+    - "I built a mobile app" → Add likely stack: React Native/Expo, or Swift/SwiftUI for iOS, Kotlin for Android
+    - "I made a website" → Add: React/Next.js, TypeScript, Tailwind CSS, Node.js backend
+    - "I created an API" → Add: Node.js/Express or Python/FastAPI, REST or GraphQL, PostgreSQL/MongoDB
+    - "I built a machine learning model" → Add: Python, TensorFlow/PyTorch, scikit-learn, pandas
+    - "I made a game" → Add: Unity/C# or Unreal/C++, or web: JavaScript/Canvas/WebGL
+    - "I automated something" → Add: Python scripts, bash, cron jobs, CI/CD pipelines
+    - "I built a chatbot" → Add: OpenAI API, LangChain, vector databases, embeddings
+    - "I created a dashboard" → Add: React, D3.js/Chart.js, data visualization libraries
+    - "I built a database" → Add: PostgreSQL/MySQL/MongoDB, schema design, indexing, queries
+
+    Also add:
+    - Architectural decisions and why they matter
+    - Challenges overcome and how
+    - Impact metrics (even reasonable estimates)
+    - Future improvements or scalability considerations
+
+    CONTEXT-AWARE EXPANSION:
 
     FOR JOB APPLICATIONS / CAREER CONTENT:
-    - Sound confident, articulate, and genuinely impressive
-    - If applying to a specific company, show you understand what they do and why you're a fit
-    - Reference specific company initiatives, products, or values when relevant
-    - Highlight achievements with specific impact where possible
-    - If they mention projects, elaborate on technical skills, languages, frameworks used
-    - Make it sound like someone who's done their homework and would be great to hire
+    - ADD new selling points they didn't mention but should (transferable skills, relevant coursework, soft skills)
+    - EXPAND brief project mentions into impressive descriptions with technologies, challenges, and impact
+    - ADD connections between their experience and the company's needs
+    - INVENT plausible metrics if none given (e.g., "processed 10,000+ records", "improved response time by 35%")
+    - ADD industry buzzwords and terminology that show they speak the language
+    - INCLUDE what they learned or how they grew from each experience
+    - If they mention a company, ADD specific knowledge about that company's products/culture/values
 
     FOR UNIVERSITY APPLICATIONS / ACADEMIC CONTENT:
-    - If applying to a specific school, show genuine knowledge about it
-    - Mention specific programs, professors, research areas, clubs, or campus culture
-    - Connect personal interests/goals to what the school offers
-    - Sound intellectually curious and well-informed
-    - Show why this specific school is the right fit, not just any school
+    - ADD specific reasons why this school is perfect (programs, professors, research, clubs, location)
+    - EXPAND brief experiences into vivid stories with emotional depth
+    - ADD reflection and personal growth - what they learned, how they changed
+    - CONNECT their interests to specific opportunities at the school
+    - ADD future goals and how this school helps achieve them
+    - INCLUDE intellectual curiosity - questions they want to explore, ideas that excite them
+    - For technical projects, ADD specific technologies AND what they learned from building it
 
     FOR PROJECT DESCRIPTIONS / TECHNICAL WORK:
-    - Clearly explain what was built and why it matters
-    - Infer and mention relevant technologies, languages, frameworks
-    - Highlight problem-solving and technical decisions
-    - Quantify impact if possible (performance improvements, user growth, etc.)
+    - EXPAND "I built X" into a full technical narrative with:
+      * The problem it solves and why it matters
+      * Full tech stack (frontend, backend, database, deployment)
+      * Key architectural decisions and trade-offs
+      * Challenges overcome and how
+      * Impact metrics (users, performance, scale)
+      * What they learned and would do differently
+    - ADD development practices: Git workflow, testing strategy, CI/CD, documentation
+    - ADD future improvements or features they'd add
 
     FOR IDEAS / BRAINSTORMING:
-    - Organize thoughts clearly and logically
-    - Expand on promising concepts with relevant real-world context
-    - Add structure without losing creativity
+    - ADD related ideas and tangents they might not have considered
+    - EXPAND on the most promising concepts
+    - ADD examples, analogies, and real-world applications
+    - STRUCTURE the ideas into actionable items or clear categories
+
+    FOR COMPETITION ENTRIES / PITCHES:
+    - ADD the "why now" and market context
+    - EXPAND on the unique value proposition
+    - ADD competitive analysis insights
+    - INCLUDE potential impact and scalability
+    - ADD credibility builders (team background, early traction, partnerships)
 
     FOR EVERYTHING ELSE:
-    - Match the tone to the subject matter
-    - Always improve clarity and flow
-    - Add relevant context that enhances understanding`,
+    - ALWAYS add substance, not just style
+    - ADD examples that illustrate points
+    - ADD context that helps the reader understand significance
+    - EXPAND brief mentions into developed ideas`,
 
-  casual: `You are a skilled writer helping someone sound articulate and natural. Rewrite this in a friendly, conversational tone.
+  casual: `You are a creative collaborator helping someone develop their ideas. Don't just rephrase - ADD new ideas, examples, and interesting angles.
 
     RULES:
-    - Output ONLY the rewritten text, nothing else
+    - Output ONLY the enhanced text, nothing else
     - NO meta-commentary or explanations
     - Remove filler words but keep personality
+
+    YOUR JOB: EXPAND AND ENRICH
+    - ADD interesting examples or analogies that illustrate their points
+    - ADD related ideas they might not have considered
+    - ADD specific details that make abstract points concrete
+    - ADD humor or wit where appropriate
+    - ADD connections to broader themes or trends
+    - DEVELOP half-formed ideas into complete thoughts
 
     STYLE:
     - Natural and easy to read
     - Use contractions, casual phrasing
-    - Keep their voice but make it flow better
-    - Add interesting details or context where it fits naturally
-    - Sound like a smart, articulate person having a conversation`,
+    - Keep their voice but make it more engaging
+    - Sound like a smart friend who always has interesting things to add`,
 
   concise: `You are a master editor. Distill this to its essential points with clarity and impact.
 
@@ -301,6 +354,312 @@ export interface RephrasingResult {
   originalText: string;
   rephrasedText: string;
   tone: ToneType;
+  detectedIntent?: ContentIntent;
+  suggestions?: Suggestion[];
+}
+
+export type ContentIntent =
+  | 'job_application'
+  | 'college_essay'
+  | 'scholarship_application'
+  | 'competition_entry'
+  | 'club_application'
+  | 'cover_letter'
+  | 'personal_statement'
+  | 'project_description'
+  | 'email_draft'
+  | 'meeting_notes'
+  | 'general';
+
+export interface Suggestion {
+  type: 'improvement' | 'addition' | 'structure' | 'tip';
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+/**
+ * Detect the intent/type of content the user is creating
+ */
+function detectContentIntent(text: string): ContentIntent {
+  const lowerText = text.toLowerCase();
+
+  // Job-related keywords
+  const jobKeywords = ['job', 'position', 'role', 'hiring', 'interview', 'resume', 'cv', 'employer', 'work experience', 'career', 'company culture', 'team', 'salary', 'benefits'];
+  const coverLetterKeywords = ['cover letter', 'dear hiring', 'dear recruiter', 'i am writing to apply', 'i am interested in the position'];
+
+  // Education-related keywords
+  const collegeKeywords = ['college', 'university', 'admission', 'campus', 'major', 'degree', 'undergraduate', 'graduate', 'freshman', 'sophomore', 'junior', 'senior', 'gpa', 'extracurricular'];
+  const essayKeywords = ['essay', 'personal statement', 'why this school', 'common app', 'supplemental', 'prompt', 'word limit', 'character limit'];
+  const scholarshipKeywords = ['scholarship', 'financial aid', 'merit', 'award', 'grant', 'funding', 'tuition'];
+
+  // Competition/application keywords
+  const competitionKeywords = ['competition', 'contest', 'hackathon', 'challenge', 'submission', 'pitch', 'presentation', 'judges', 'prize', 'winner'];
+  const clubKeywords = ['club', 'organization', 'society', 'leadership', 'member', 'e-board', 'executive board', 'president', 'vice president', 'treasurer', 'secretary', 'committee'];
+
+  // Project keywords
+  const projectKeywords = ['project', 'built', 'developed', 'created', 'implemented', 'designed', 'app', 'application', 'website', 'software', 'system', 'feature', 'functionality'];
+
+  // Check for cover letter first (most specific)
+  if (coverLetterKeywords.some(kw => lowerText.includes(kw))) {
+    return 'cover_letter';
+  }
+
+  // Check for scholarship
+  if (scholarshipKeywords.some(kw => lowerText.includes(kw))) {
+    return 'scholarship_application';
+  }
+
+  // Check for college essay/personal statement
+  if (essayKeywords.some(kw => lowerText.includes(kw)) ||
+      (collegeKeywords.filter(kw => lowerText.includes(kw)).length >= 2)) {
+    return 'college_essay';
+  }
+
+  // Check for competition
+  if (competitionKeywords.some(kw => lowerText.includes(kw))) {
+    return 'competition_entry';
+  }
+
+  // Check for club application
+  if (clubKeywords.filter(kw => lowerText.includes(kw)).length >= 2) {
+    return 'club_application';
+  }
+
+  // Check for job application
+  if (jobKeywords.filter(kw => lowerText.includes(kw)).length >= 2) {
+    return 'job_application';
+  }
+
+  // Check for project description
+  if (projectKeywords.filter(kw => lowerText.includes(kw)).length >= 2) {
+    return 'project_description';
+  }
+
+  // Check for email
+  if (lowerText.includes('email') || lowerText.includes('dear') || lowerText.includes('sincerely') || lowerText.includes('best regards')) {
+    return 'email_draft';
+  }
+
+  // Check for meeting notes
+  if (lowerText.includes('meeting') || lowerText.includes('agenda') || lowerText.includes('action items') || lowerText.includes('discussed')) {
+    return 'meeting_notes';
+  }
+
+  return 'general';
+}
+
+/**
+ * Generate contextual suggestions based on detected intent and content
+ */
+async function generateSuggestions(text: string, intent: ContentIntent): Promise<Suggestion[]> {
+  const suggestions: Suggestion[] = [];
+  const lowerText = text.toLowerCase();
+  const wordCount = text.split(/\s+/).length;
+
+  // Universal suggestions
+  if (wordCount < 50) {
+    suggestions.push({
+      type: 'addition',
+      title: 'Add more detail',
+      description: 'Your content is quite brief. Consider expanding with specific examples or context.',
+      priority: 'medium'
+    });
+  }
+
+  // Intent-specific suggestions
+  switch (intent) {
+    case 'job_application':
+    case 'cover_letter':
+      // Check if they mention a project but don't specify technologies
+      const mentionsProject = lowerText.includes('built') || lowerText.includes('created') || lowerText.includes('developed') || lowerText.includes('app') || lowerText.includes('project') || lowerText.includes('website');
+      const mentionsTech = lowerText.includes('react') || lowerText.includes('python') || lowerText.includes('javascript') || lowerText.includes('node') || lowerText.includes('typescript') || lowerText.includes('java') || lowerText.includes('sql');
+
+      if (mentionsProject && !mentionsTech) {
+        suggestions.push({
+          type: 'improvement',
+          title: 'Add specific technologies',
+          description: 'Mention the languages, frameworks, and tools you used (e.g., "React, Node.js, PostgreSQL"). The AI has added likely technologies - review and adjust to match what you actually used.',
+          priority: 'high'
+        });
+      }
+      if (!lowerText.includes('achieve') && !lowerText.includes('accomplish') && !lowerText.includes('result') && !lowerText.includes('impact')) {
+        suggestions.push({
+          type: 'improvement',
+          title: 'Quantify your achievements',
+          description: 'Add specific numbers or metrics to demonstrate impact (e.g., "increased sales by 25%", "managed team of 5").',
+          priority: 'high'
+        });
+      }
+      if (!lowerText.includes('skill') && !lowerText.includes('experience') && !lowerText.includes('proficient')) {
+        suggestions.push({
+          type: 'addition',
+          title: 'Highlight relevant skills',
+          description: 'Mention specific technical or soft skills that match the job requirements.',
+          priority: 'high'
+        });
+      }
+      if (!lowerText.includes('why') && !lowerText.includes('passion') && !lowerText.includes('excited') && !lowerText.includes('interested')) {
+        suggestions.push({
+          type: 'addition',
+          title: 'Show genuine interest',
+          description: 'Explain why you\'re specifically interested in this company or role, not just any job.',
+          priority: 'medium'
+        });
+      }
+      break;
+
+    case 'college_essay':
+    case 'personal_statement':
+      if (!lowerText.includes('learn') && !lowerText.includes('grow') && !lowerText.includes('change') && !lowerText.includes('realize')) {
+        suggestions.push({
+          type: 'improvement',
+          title: 'Show personal growth',
+          description: 'Colleges want to see how experiences changed you. Reflect on what you learned or how you grew.',
+          priority: 'high'
+        });
+      }
+      if (!lowerText.includes('specific') && !lowerText.match(/\d{4}/) && !lowerText.match(/when i was/)) {
+        suggestions.push({
+          type: 'structure',
+          title: 'Add a specific story',
+          description: 'Start with a vivid, specific moment or anecdote. Show, don\'t just tell.',
+          priority: 'high'
+        });
+      }
+      if (!lowerText.includes('future') && !lowerText.includes('goal') && !lowerText.includes('plan') && !lowerText.includes('aspire')) {
+        suggestions.push({
+          type: 'addition',
+          title: 'Connect to future goals',
+          description: 'Briefly mention how this experience or interest connects to what you want to do next.',
+          priority: 'medium'
+        });
+      }
+      break;
+
+    case 'scholarship_application':
+      if (!lowerText.includes('financial') && !lowerText.includes('support') && !lowerText.includes('help') && !lowerText.includes('enable')) {
+        suggestions.push({
+          type: 'addition',
+          title: 'Explain the impact',
+          description: 'Describe how this scholarship would help you achieve your goals or overcome challenges.',
+          priority: 'high'
+        });
+      }
+      if (!lowerText.includes('community') && !lowerText.includes('give back') && !lowerText.includes('contribute')) {
+        suggestions.push({
+          type: 'addition',
+          title: 'Mention giving back',
+          description: 'Scholarships often favor applicants who plan to contribute to their community or field.',
+          priority: 'medium'
+        });
+      }
+      break;
+
+    case 'competition_entry':
+      if (!lowerText.includes('unique') && !lowerText.includes('different') && !lowerText.includes('innovative') && !lowerText.includes('novel')) {
+        suggestions.push({
+          type: 'improvement',
+          title: 'Highlight what\'s unique',
+          description: 'Clearly state what makes your entry different from others. What\'s your unique angle?',
+          priority: 'high'
+        });
+      }
+      if (!lowerText.includes('problem') && !lowerText.includes('solve') && !lowerText.includes('address') && !lowerText.includes('challenge')) {
+        suggestions.push({
+          type: 'structure',
+          title: 'Define the problem',
+          description: 'Start by clearly stating the problem you\'re solving. Make judges understand the "why".',
+          priority: 'high'
+        });
+      }
+      break;
+
+    case 'club_application':
+      if (!lowerText.includes('contribute') && !lowerText.includes('bring') && !lowerText.includes('offer') && !lowerText.includes('add')) {
+        suggestions.push({
+          type: 'addition',
+          title: 'State your contribution',
+          description: 'Be specific about what you\'ll bring to the club - skills, ideas, or connections.',
+          priority: 'high'
+        });
+      }
+      if (!lowerText.includes('commit') && !lowerText.includes('dedicate') && !lowerText.includes('time') && !lowerText.includes('available')) {
+        suggestions.push({
+          type: 'addition',
+          title: 'Show commitment',
+          description: 'Mention your availability and commitment level. Clubs want reliable members.',
+          priority: 'medium'
+        });
+      }
+      break;
+
+    case 'project_description':
+      const projectMentionsTech = lowerText.includes('react') || lowerText.includes('python') || lowerText.includes('javascript') || lowerText.includes('node') || lowerText.includes('typescript') || lowerText.includes('java') || lowerText.includes('sql') || lowerText.includes('swift') || lowerText.includes('kotlin');
+
+      if (!projectMentionsTech) {
+        suggestions.push({
+          type: 'tip',
+          title: 'Review inferred technologies',
+          description: 'The AI has added likely technologies based on your project description. Review and adjust to match what you actually used.',
+          priority: 'high'
+        });
+      }
+      if (!lowerText.includes('user') && !lowerText.includes('people') && !lowerText.includes('customer') && !lowerText.includes('audience')) {
+        suggestions.push({
+          type: 'addition',
+          title: 'Identify target users',
+          description: 'Who is this project for? Describing your target audience adds context.',
+          priority: 'medium'
+        });
+      }
+      if (!lowerText.includes('challenge') && !lowerText.includes('difficult') && !lowerText.includes('obstacle') && !lowerText.includes('problem')) {
+        suggestions.push({
+          type: 'tip',
+          title: 'Mention challenges overcome',
+          description: 'Briefly describe a challenge you faced and how you solved it. This shows problem-solving skills.',
+          priority: 'low'
+        });
+      }
+      break;
+
+    case 'email_draft':
+      if (!lowerText.includes('appreciate') && !lowerText.includes('thank') && !lowerText.includes('grateful')) {
+        suggestions.push({
+          type: 'tip',
+          title: 'Add appreciation',
+          description: 'A brief thank you or acknowledgment creates a warmer tone.',
+          priority: 'low'
+        });
+      }
+      if (!lowerText.includes('next step') && !lowerText.includes('please') && !lowerText.includes('let me know') && !lowerText.includes('could you')) {
+        suggestions.push({
+          type: 'structure',
+          title: 'Include a clear ask',
+          description: 'End with a specific call-to-action or next step.',
+          priority: 'medium'
+        });
+      }
+      break;
+
+    default:
+      // General suggestions
+      if (!lowerText.includes('example') && !lowerText.includes('for instance') && !lowerText.includes('such as')) {
+        suggestions.push({
+          type: 'tip',
+          title: 'Add examples',
+          description: 'Specific examples make your points more concrete and memorable.',
+          priority: 'low'
+        });
+      }
+  }
+
+  // Sort by priority
+  const priorityOrder = { high: 0, medium: 1, low: 2 };
+  suggestions.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+  // Return top 3 suggestions
+  return suggestions.slice(0, 3);
 }
 
 /**
@@ -375,9 +734,16 @@ export async function rephraseText(
       throw new Error('Groq API key not configured. Please set GROQ_API_KEY in your .env file.');
     }
 
+    // Detect what the user is trying to create
+    const detectedIntent = detectContentIntent(text);
+    console.log('Detected content intent:', detectedIntent);
+
     // Gather real-world context from web searches
     const webContext = await gatherContext(text);
-    const systemPrompt = (tonePrompts[tone] || tonePrompts.professional) + webContext;
+
+    // Add intent-specific guidance to the prompt
+    const intentGuidance = getIntentGuidance(detectedIntent);
+    const systemPrompt = (tonePrompts[tone] || tonePrompts.professional) + intentGuidance + webContext;
 
     console.log('Rephrasing text with tone:', tone);
     console.log('Web context gathered:', webContext ? 'Yes' : 'No');
@@ -414,17 +780,146 @@ export async function rephraseText(
     const data = await response.json() as { choices?: { message?: { content?: string } }[] };
     const rephrasedText = data.choices?.[0]?.message?.content || text;
 
+    // Generate contextual suggestions
+    const suggestions = await generateSuggestions(text, detectedIntent);
+
     console.log('Rephrasing successful, output length:', rephrasedText.length);
+    console.log('Generated suggestions:', suggestions.length);
 
     return {
       originalText: text,
       rephrasedText: rephrasedText.trim(),
       tone,
+      detectedIntent,
+      suggestions,
     };
   } catch (error: any) {
     console.error('Rephrasing error:', error);
     throw new Error(`Failed to rephrase text: ${error?.message || 'Unknown error'}`);
   }
+}
+
+/**
+ * Get additional prompt guidance based on detected intent
+ */
+function getIntentGuidance(intent: ContentIntent): string {
+  const guidanceMap: Record<ContentIntent, string> = {
+    job_application: `
+
+    DETECTED: JOB APPLICATION / CAREER CONTENT
+    YOUR JOB: Transform brief mentions into impressive, detailed content. ADD:
+    - Specific technologies for ANY project mentioned (React, Node.js, Python, AWS, etc.)
+    - Quantified achievements (even reasonable estimates: "processed 5000+ records", "reduced errors by 40%")
+    - What they learned and skills they developed
+    - How their experience connects to this specific role
+    - Industry terminology and buzzwords that show expertise
+    - Soft skills demonstrated through their examples (leadership, collaboration, problem-solving)
+    - If a company is mentioned, ADD specific knowledge about that company`,
+
+    cover_letter: `
+
+    DETECTED: COVER LETTER
+    YOUR JOB: Expand into a compelling narrative. ADD:
+    - A memorable opening hook that grabs attention
+    - Specific connections between their background and the job requirements
+    - Knowledge about the company's mission, products, or recent news
+    - A concrete example or story that demonstrates their value
+    - Why this company specifically (not just any job)
+    - A confident closing with clear next steps`,
+
+    college_essay: `
+
+    DETECTED: COLLEGE APPLICATION ESSAY
+    YOUR JOB: Transform into a vivid, memorable story. ADD:
+    - Sensory details and specific moments (not just general statements)
+    - Emotional depth - how they felt, what they thought
+    - Personal reflection - what they learned about themselves
+    - Connection to their future goals and why this school
+    - Their unique perspective or voice
+    - If a school is mentioned, ADD specific programs, professors, clubs, or opportunities there`,
+
+    personal_statement: `
+
+    DETECTED: PERSONAL STATEMENT
+    YOUR JOB: Create a compelling narrative arc. ADD:
+    - A hook that draws the reader in immediately
+    - Specific scenes and moments, not just summaries
+    - Internal thoughts and reflections
+    - Growth and transformation - who they were vs. who they are now
+    - Connection to their future aspirations
+    - What makes them unique and memorable`,
+
+    scholarship_application: `
+
+    DETECTED: SCHOLARSHIP APPLICATION
+    YOUR JOB: Show why they deserve this investment. ADD:
+    - Specific impact this scholarship would have on their life/education
+    - Concrete achievements and leadership examples
+    - How they've overcome challenges or demonstrated resilience
+    - Their plans to give back to their community or field
+    - Future goals and how this scholarship enables them
+    - Gratitude and commitment to making the most of the opportunity`,
+
+    competition_entry: `
+
+    DETECTED: COMPETITION/HACKATHON ENTRY
+    YOUR JOB: Make their entry stand out. ADD:
+    - The problem's urgency and why it matters NOW
+    - What makes their solution unique vs. alternatives
+    - Technical depth with specific technologies and architecture
+    - Potential impact at scale (users, revenue, lives changed)
+    - Team credibility or relevant background
+    - Future roadmap and growth potential`,
+
+    club_application: `
+
+    DETECTED: CLUB/ORGANIZATION APPLICATION
+    YOUR JOB: Show they'd be a valuable member. ADD:
+    - Specific knowledge about the club's mission and activities
+    - Relevant skills and experiences they'd contribute
+    - Ideas for events, initiatives, or improvements
+    - Availability and commitment level
+    - What they hope to learn and how they'd grow
+    - Genuine enthusiasm (but not over-the-top)`,
+
+    project_description: `
+
+    DETECTED: PROJECT DESCRIPTION
+    YOUR JOB: Transform "I built X" into an impressive technical narrative. ADD:
+    - Full tech stack: frontend, backend, database, deployment (infer if not stated)
+      * Mobile app → React Native/Expo, TypeScript, Firebase/Supabase
+      * Website → Next.js, React, Tailwind CSS, Vercel
+      * API → Node.js/Express or Python/FastAPI, PostgreSQL
+      * ML → Python, PyTorch/TensorFlow, pandas, scikit-learn
+    - The problem it solves and why it matters
+    - Key architectural decisions and why they made them
+    - Challenges they faced and how they solved them
+    - Impact metrics (users, performance, reliability)
+    - What they learned and would do differently
+    - Development practices: Git, testing, CI/CD`,
+
+    email_draft: `
+
+    DETECTED: EMAIL DRAFT
+    - Keep subject line clear and actionable
+    - Lead with the main point
+    - Use short paragraphs and bullet points
+    - End with a clear call-to-action
+    - Be professional but warm`,
+
+    meeting_notes: `
+
+    DETECTED: MEETING NOTES
+    - Use clear headings and structure
+    - List key decisions and action items
+    - Assign owners and deadlines to tasks
+    - Summarize main discussion points
+    - Keep it scannable`,
+
+    general: ''
+  };
+
+  return guidanceMap[intent] || '';
 }
 
 /**

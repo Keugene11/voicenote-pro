@@ -26,6 +26,47 @@ import { ToneType, toneLabels } from '../types';
 // Set to false to use voice recording mode (records -> transcribes -> rephrases)
 const USE_TEXT_INPUT_MODE = false;
 
+// Types for suggestions
+interface Suggestion {
+  type: 'improvement' | 'addition' | 'structure' | 'tip';
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+type ContentIntent =
+  | 'job_application'
+  | 'college_essay'
+  | 'scholarship_application'
+  | 'competition_entry'
+  | 'club_application'
+  | 'cover_letter'
+  | 'personal_statement'
+  | 'project_description'
+  | 'email_draft'
+  | 'meeting_notes'
+  | 'general';
+
+const intentLabels: Record<ContentIntent, string> = {
+  job_application: '💼 Job Application',
+  college_essay: '🎓 College Essay',
+  scholarship_application: '🏆 Scholarship',
+  competition_entry: '🏅 Competition Entry',
+  club_application: '👥 Club Application',
+  cover_letter: '📝 Cover Letter',
+  personal_statement: '✍️ Personal Statement',
+  project_description: '🔧 Project Description',
+  email_draft: '📧 Email',
+  meeting_notes: '📋 Meeting Notes',
+  general: '📄 Note',
+};
+
+const priorityColors: Record<string, string> = {
+  high: '#ef4444',
+  medium: '#f59e0b',
+  low: '#3b82f6',
+};
+
 export default function ResultScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -55,6 +96,9 @@ export default function ResultScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [inputText, setInputText] = useState('');
   const [showTextInput, setShowTextInput] = useState(USE_TEXT_INPUT_MODE);
+  const [detectedIntent, setDetectedIntent] = useState<ContentIntent | null>(null);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   useEffect(() => {
     if (audioUri && !USE_TEXT_INPUT_MODE) {
@@ -65,6 +109,8 @@ export default function ResultScreen() {
   const processAudio = async () => {
     setTranscribing(true);
     setError(null);
+    setSuggestions([]);
+    setDetectedIntent(null);
 
     try {
       const result = await apiService.processAudio(audioUri, selectedToneLocal);
@@ -72,6 +118,14 @@ export default function ResultScreen() {
       if (result.success && result.data) {
         setTranscribedText(result.data.transcription.text);
         setRephrasedText(result.data.rephrasing.rephrasedText);
+
+        // Capture detected intent and suggestions
+        if (result.data.rephrasing.detectedIntent) {
+          setDetectedIntent(result.data.rephrasing.detectedIntent as ContentIntent);
+        }
+        if (result.data.rephrasing.suggestions) {
+          setSuggestions(result.data.rephrasing.suggestions);
+        }
       } else {
         setError(result.error || 'Failed to process audio');
       }
@@ -92,6 +146,8 @@ export default function ResultScreen() {
     setTranscribing(true);
     setError(null);
     setTranscribedText(inputText);
+    setSuggestions([]);
+    setDetectedIntent(null);
 
     try {
       const result = await apiService.rephraseText(inputText, selectedToneLocal);
@@ -99,6 +155,14 @@ export default function ResultScreen() {
       if (result.success && result.data) {
         setRephrasedText(result.data.rephrasedText);
         setShowTextInput(false);
+
+        // Capture detected intent and suggestions
+        if (result.data.detectedIntent) {
+          setDetectedIntent(result.data.detectedIntent as ContentIntent);
+        }
+        if (result.data.suggestions) {
+          setSuggestions(result.data.suggestions);
+        }
       } else {
         setError(result.error || 'Failed to rephrase text');
       }
@@ -121,6 +185,14 @@ export default function ResultScreen() {
 
       if (result.success && result.data) {
         setRephrasedText(result.data.rephrasedText);
+
+        // Update suggestions with new tone
+        if (result.data.detectedIntent) {
+          setDetectedIntent(result.data.detectedIntent as ContentIntent);
+        }
+        if (result.data.suggestions) {
+          setSuggestions(result.data.suggestions);
+        }
       } else {
         setError(result.error || 'Failed to rephrase text');
       }
@@ -358,6 +430,18 @@ export default function ResultScreen() {
                 </View>
               )}
 
+              {/* Detected Intent Badge */}
+              {detectedIntent && detectedIntent !== 'general' && (
+                <View style={styles.intentBadgeContainer}>
+                  <View style={styles.intentBadge}>
+                    <Text style={styles.intentBadgeText}>
+                      {intentLabels[detectedIntent] || 'Note'}
+                    </Text>
+                  </View>
+                  <Text style={styles.intentHint}>AI detected content type</Text>
+                </View>
+              )}
+
               {/* Text Content Card */}
               <View style={styles.textCard}>
                 <View style={styles.textCardHeader}>
@@ -374,6 +458,51 @@ export default function ResultScreen() {
                 </View>
                 <Text style={styles.resultText}>{displayText}</Text>
               </View>
+
+              {/* AI Suggestions */}
+              {suggestions.length > 0 && (
+                <View style={styles.suggestionsSection}>
+                  <TouchableOpacity
+                    style={styles.suggestionsSectionHeader}
+                    onPress={() => setShowSuggestions(!showSuggestions)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.suggestionsTitleRow}>
+                      <Ionicons name="bulb" size={18} color={colors.warning} />
+                      <Text style={styles.suggestionsTitle}>Suggestions to Improve</Text>
+                    </View>
+                    <Ionicons
+                      name={showSuggestions ? 'chevron-up' : 'chevron-down'}
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+
+                  {showSuggestions && (
+                    <View style={styles.suggestionsList}>
+                      {suggestions.map((suggestion, index) => (
+                        <View key={index} style={styles.suggestionCard}>
+                          <View style={styles.suggestionHeader}>
+                            <View
+                              style={[
+                                styles.priorityDot,
+                                { backgroundColor: priorityColors[suggestion.priority] },
+                              ]}
+                            />
+                            <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
+                            <View style={styles.suggestionTypeBadge}>
+                              <Text style={styles.suggestionTypeText}>{suggestion.type}</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.suggestionDescription}>
+                            {suggestion.description}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
 
               {/* Tone Selector */}
               <View style={styles.toneSection}>
@@ -727,5 +856,95 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     color: colors.textOnPrimary,
     fontWeight: typography.semibold,
+  },
+  // Intent Badge Styles
+  intentBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  intentBadge: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+  intentBadgeText: {
+    color: colors.primary,
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+  },
+  intentHint: {
+    color: colors.textLight,
+    fontSize: typography.caption,
+  },
+  // Suggestions Styles
+  suggestionsSection: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  suggestionsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+  },
+  suggestionsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  suggestionsTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  suggestionsList: {
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  suggestionCard: {
+    backgroundColor: colors.backgroundLight,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  priorityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  suggestionTitle: {
+    flex: 1,
+    fontSize: typography.bodySmall,
+    fontWeight: typography.semibold,
+    color: colors.textPrimary,
+  },
+  suggestionTypeBadge: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  suggestionTypeText: {
+    fontSize: typography.caption,
+    color: colors.textLight,
+    textTransform: 'capitalize',
+  },
+  suggestionDescription: {
+    fontSize: typography.bodySmall,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
 });
