@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   User,
   onAuthStateChanged,
@@ -11,14 +11,19 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const localTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
+      // Clear cached token when user changes
+      localTokenRef.current = null;
     });
 
     return () => unsubscribe();
@@ -53,6 +58,7 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
+      localTokenRef.current = null;
       await firebaseSignOut(auth);
     } catch (error) {
       console.error('Sign out error:', error);
@@ -62,7 +68,34 @@ export function useAuth() {
 
   const getToken = async (): Promise<string | null> => {
     if (!user) return null;
-    return user.getIdToken();
+
+    // Return cached local token if we have one
+    if (localTokenRef.current) {
+      return localTokenRef.current;
+    }
+
+    // Get Firebase ID token
+    const firebaseToken = await user.getIdToken();
+
+    // Exchange for local JWT
+    try {
+      const response = await fetch(`${API_URL}/auth/firebase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: firebaseToken }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.token) {
+        localTokenRef.current = data.token;
+        return data.token;
+      }
+    } catch (error) {
+      console.error('Token exchange error:', error);
+    }
+
+    return null;
   };
 
   return {

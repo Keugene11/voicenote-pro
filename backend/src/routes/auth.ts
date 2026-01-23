@@ -21,6 +21,82 @@ const users: Map<string, {
 const otpStore: Map<string, { otp: string; expiresAt: Date }> = new Map();
 
 /**
+ * POST /auth/firebase
+ * Exchange Firebase ID token for local JWT
+ */
+router.post('/firebase', async (req: Request, res: Response) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      res.status(400).json({ error: 'Firebase ID token required' });
+      return;
+    }
+
+    // Decode Firebase token (base64 decode the payload)
+    // In production, use firebase-admin to properly verify
+    const parts = idToken.split('.');
+    if (parts.length !== 3) {
+      res.status(400).json({ error: 'Invalid token format' });
+      return;
+    }
+
+    let payload;
+    try {
+      const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
+    } catch (e) {
+      res.status(400).json({ error: 'Failed to decode token' });
+      return;
+    }
+
+    const email = payload.email;
+    const firebaseUid = payload.user_id || payload.sub;
+    const displayName = payload.name || email?.split('@')[0];
+
+    if (!email) {
+      res.status(400).json({ error: 'Email not found in token' });
+      return;
+    }
+
+    // Find or create user
+    let user = users.get(email);
+
+    if (!user) {
+      user = {
+        id: firebaseUid || uuidv4(),
+        email,
+        displayName,
+        subscriptionTier: 'free',
+        monthlyUsage: 0,
+        createdAt: new Date(),
+      };
+      users.set(email, user);
+      console.log('Created new user from Firebase:', email);
+    }
+
+    // Generate local JWT
+    const token = generateToken(user.id, user.email);
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        subscriptionTier: user.subscriptionTier,
+        monthlyUsage: user.monthlyUsage,
+        createdAt: user.createdAt,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error('Firebase auth error:', error);
+    res.status(500).json({ error: 'Failed to authenticate with Firebase' });
+  }
+});
+
+/**
  * POST /auth/send-otp
  * Send OTP to email for passwordless login
  */
