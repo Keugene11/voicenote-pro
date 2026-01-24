@@ -1,45 +1,43 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import { Pool } from 'pg';
 
-const dbPath = path.join(__dirname, '../../data/rabona.db');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
-// Ensure data directory exists
-const dataDir = path.dirname(dbPath);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// Initialize database tables
+export async function initDatabase(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        display_name TEXT,
+        subscription_tier TEXT DEFAULT 'free',
+        monthly_usage INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS notes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        original_text TEXT NOT NULL,
+        enhanced_text TEXT,
+        tone TEXT DEFAULT 'professional',
+        detected_intent TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
+      CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at);
+    `);
+    console.log('Database tables initialized');
+  } finally {
+    client.release();
+  }
 }
-
-const db = new Database(dbPath);
-
-// Enable WAL mode for better performance
-db.pragma('journal_mode = WAL');
-
-// Create tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    display_name TEXT,
-    subscription_tier TEXT DEFAULT 'free',
-    monthly_usage INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS notes (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    original_text TEXT NOT NULL,
-    enhanced_text TEXT,
-    tone TEXT DEFAULT 'professional',
-    detected_intent TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
-  CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at);
-`);
 
 export interface DBUser {
   id: string;
@@ -61,67 +59,76 @@ export interface DBNote {
 }
 
 // User operations
-export function findUserByEmail(email: string): DBUser | undefined {
-  return db.prepare('SELECT * FROM users WHERE email = ?').get(email) as DBUser | undefined;
+export async function findUserByEmail(email: string): Promise<DBUser | undefined> {
+  const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  return result.rows[0];
 }
 
-export function findUserById(id: string): DBUser | undefined {
-  return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as DBUser | undefined;
+export async function findUserById(id: string): Promise<DBUser | undefined> {
+  const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+  return result.rows[0];
 }
 
-export function createUser(user: { id: string; email: string; displayName?: string }): DBUser {
-  const stmt = db.prepare(
-    'INSERT INTO users (id, email, display_name) VALUES (?, ?, ?) RETURNING *'
+export async function createUser(user: { id: string; email: string; displayName?: string }): Promise<DBUser> {
+  const result = await pool.query(
+    'INSERT INTO users (id, email, display_name) VALUES ($1, $2, $3) RETURNING *',
+    [user.id, user.email, user.displayName || null]
   );
-  return stmt.get(user.id, user.email, user.displayName || null) as DBUser;
+  return result.rows[0];
 }
 
-export function updateUser(id: string, updates: Partial<{ display_name: string; subscription_tier: string; monthly_usage: number }>): void {
-  const fields = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
-  const stmt = db.prepare(`UPDATE users SET ${fields} WHERE id = @id`);
-  stmt.run({ ...updates, id });
+export async function updateUser(
+  id: string,
+  updates: Partial<{ display_name: string; subscription_tier: string; monthly_usage: number }>
+): Promise<void> {
+  const fields = Object.keys(updates);
+  const values = Object.values(updates);
+  const setClause = fields.map((f, i) => `${f} = $${i + 2}`).join(', ');
+  await pool.query(`UPDATE users SET ${setClause} WHERE id = $1`, [id, ...values]);
 }
 
 // Note operations
-export function createNote(note: {
+export async function createNote(note: {
   id: string;
   userId: string;
   originalText: string;
   enhancedText?: string;
   tone?: string;
   detectedIntent?: string;
-}): DBNote {
-  const stmt = db.prepare(
-    'INSERT INTO notes (id, user_id, original_text, enhanced_text, tone, detected_intent) VALUES (?, ?, ?, ?, ?, ?) RETURNING *'
+}): Promise<DBNote> {
+  const result = await pool.query(
+    'INSERT INTO notes (id, user_id, original_text, enhanced_text, tone, detected_intent) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+    [
+      note.id,
+      note.userId,
+      note.originalText,
+      note.enhancedText || null,
+      note.tone || 'professional',
+      note.detectedIntent || null,
+    ]
   );
-  return stmt.get(
-    note.id,
-    note.userId,
-    note.originalText,
-    note.enhancedText || null,
-    note.tone || 'professional',
-    note.detectedIntent || null
-  ) as DBNote;
+  return result.rows[0];
 }
 
-export function getUserNotes(userId: string, limit = 50, offset = 0): DBNote[] {
-  return db.prepare(
-    'SELECT * FROM notes WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
-  ).all(userId, limit, offset) as DBNote[];
+export async function getUserNotes(userId: string, limit = 50, offset = 0): Promise<DBNote[]> {
+  const result = await pool.query(
+    'SELECT * FROM notes WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+    [userId, limit, offset]
+  );
+  return result.rows;
 }
 
-export function getNoteById(id: string, userId: string): DBNote | undefined {
-  return db.prepare('SELECT * FROM notes WHERE id = ? AND user_id = ?').get(id, userId) as DBNote | undefined;
+export async function getNoteById(id: string, userId: string): Promise<DBNote | undefined> {
+  const result = await pool.query('SELECT * FROM notes WHERE id = $1 AND user_id = $2', [id, userId]);
+  return result.rows[0];
 }
 
-export function deleteNote(id: string, userId: string): boolean {
-  const result = db.prepare('DELETE FROM notes WHERE id = ? AND user_id = ?').run(id, userId);
-  return result.changes > 0;
+export async function deleteNote(id: string, userId: string): Promise<boolean> {
+  const result = await pool.query('DELETE FROM notes WHERE id = $1 AND user_id = $2', [id, userId]);
+  return (result.rowCount ?? 0) > 0;
 }
 
-export function countUserNotes(userId: string): number {
-  const result = db.prepare('SELECT COUNT(*) as count FROM notes WHERE user_id = ?').get(userId) as { count: number };
-  return result.count;
+export async function countUserNotes(userId: string): Promise<number> {
+  const result = await pool.query('SELECT COUNT(*) as count FROM notes WHERE user_id = $1', [userId]);
+  return parseInt(result.rows[0].count, 10);
 }
-
-// Database instance is internal - use exported functions instead

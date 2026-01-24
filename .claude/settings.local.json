@@ -22,7 +22,8 @@
       "Bash(ping:*)",
       "Bash(dir /b c:UsersDanielProjectsaudiopenwebsite*.config.*)",
       "Bash(dir c:UsersDanielProjectsaudiopenwebsite /b)",
-      "Bash(taskkill //F //PID 16304)"
+      "Bash(taskkill //F //PID 16304)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }

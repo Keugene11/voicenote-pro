@@ -28,16 +28,16 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
     }
 
     // Ensure user exists in database (auto-create if not)
-    const existingUser = findUserById(req.userId!);
+    const existingUser = await findUserById(req.userId!);
     if (!existingUser) {
-      createUser({
+      await createUser({
         id: req.userId!,
         email: req.userEmail || 'unknown@example.com',
         displayName: req.userEmail?.split('@')[0],
       });
     }
 
-    const note = createNote({
+    const note = await createNote({
       id: uuidv4(),
       userId: req.userId!,
       originalText,
@@ -72,8 +72,8 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const notes = getUserNotes(req.userId!, limit, offset);
-    const total = countUserNotes(req.userId!);
+    const notes = await getUserNotes(req.userId!, limit, offset);
+    const total = await countUserNotes(req.userId!);
 
     res.json({
       notes: notes.map((note: DBNote) => ({
@@ -100,7 +100,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
  */
 router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const note = getNoteById(req.params.id, req.userId!);
+    const note = await getNoteById(req.params.id, req.userId!);
 
     if (!note) {
       res.status(404).json({ error: 'Note not found' });
@@ -127,7 +127,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response) =>
  */
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const deleted = deleteNote(req.params.id, req.userId!);
+    const deleted = await deleteNote(req.params.id, req.userId!);
 
     if (!deleted) {
       res.status(404).json({ error: 'Note not found' });
