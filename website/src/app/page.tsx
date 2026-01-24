@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mic, Sparkles, LogOut, User, Sun, Moon } from 'lucide-react';
+import { Mic, Sparkles, LogOut, User, Sun, Moon, Copy } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Recorder } from '@/components/Recorder';
@@ -29,22 +29,19 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-amber-50 dark:bg-gray-950">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse text-amber-600 dark:text-amber-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-amber-50 dark:bg-gray-950 transition-colors">
+    <div className="min-h-screen transition-colors">
       {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-amber-50/80 dark:bg-gray-950/80 border-b border-amber-200 dark:border-gray-800">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[var(--background)]/80 border-b border-amber-200/50 dark:border-gray-800">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
-              <Mic className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Rabona</h1>
+            <h1 className="text-xl font-serif text-gray-900 dark:text-white">Rabona</h1>
           </div>
 
           <div className="flex items-center gap-1">
@@ -65,9 +62,8 @@ export default function Home() {
             ) : (
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium transition-colors"
               >
-                <User className="w-4 h-4" />
                 Sign In
               </button>
             )}
@@ -75,23 +71,36 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+        {/* Hero Section - only for non-logged in users */}
+        {!user && (
+          <div className="text-center space-y-4 py-8">
+            <h2 className="text-4xl md:text-5xl font-serif text-gray-900 dark:text-white leading-tight">
+              Your voice, <br />
+              <span className="italic">perfectly written.</span>
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 text-lg max-w-md mx-auto">
+              Turn your voice into polished text. Record, transcribe, and refine with AI.
+            </p>
+          </div>
+        )}
+
         {/* Recorder Section */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-amber-200 dark:border-gray-800 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-amber-200/50 dark:border-gray-800 shadow-sm">
           <Recorder token={token} onNoteCreated={handleNoteCreated} />
         </div>
 
         {/* Sign in prompt for non-logged in users */}
         {!user && (
           <div className="text-center py-4">
-            <p className="text-gray-500 dark:text-gray-500 text-sm mb-2">
+            <p className="text-gray-500 dark:text-gray-500 text-sm mb-3">
               Sign in to save your notes
             </p>
             <button
               onClick={() => setShowAuthModal(true)}
-              className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors"
+              className="px-6 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors"
             >
-              Sign In
+              Get Started
             </button>
           </div>
         )}
@@ -103,24 +112,27 @@ export default function Home() {
 
         {/* Features - only show when not logged in */}
         {!user && (
-          <div className="grid grid-cols-3 gap-3 pt-4">
-            <div className="text-center p-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2">
-                <Mic className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          <div className="grid grid-cols-3 gap-4 pt-8 pb-4">
+            <div className="text-center p-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-3">
+                <Mic className="w-6 h-6 text-amber-600 dark:text-amber-400" />
               </div>
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Record</p>
+              <p className="font-medium text-gray-900 dark:text-white">Record</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Speak naturally</p>
             </div>
-            <div className="text-center p-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2">
-                <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <div className="text-center p-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-3">
+                <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400" />
               </div>
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Polish</p>
+              <p className="font-medium text-gray-900 dark:text-white">Polish</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">AI cleans it up</p>
             </div>
-            <div className="text-center p-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-2">
-                <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <div className="text-center p-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-3">
+                <Copy className="w-6 h-6 text-amber-600 dark:text-amber-400" />
               </div>
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Copy</p>
+              <p className="font-medium text-gray-900 dark:text-white">Copy</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Use anywhere</p>
             </div>
           </div>
         )}

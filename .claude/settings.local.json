@@ -23,7 +23,12 @@
       "Bash(dir /b c:UsersDanielProjectsaudiopenwebsite*.config.*)",
       "Bash(dir c:UsersDanielProjectsaudiopenwebsite /b)",
       "Bash(taskkill //F //PID 16304)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(where:*)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -U postgres -c \"CREATE DATABASE rabona;\")",
+      "Bash(net start:*)",
+      "Bash(sc query:*)",
+      "Bash(taskkill //F //PID 26700)"
     ]
   }
 }
