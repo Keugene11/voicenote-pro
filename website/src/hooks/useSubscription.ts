@@ -41,14 +41,24 @@ export function useSubscription() {
   const openCheckout = async (plan: 'monthly' | 'yearly' = 'monthly') => {
     try {
       const token = await getToken();
-      if (token) {
-        const { url } = await createCheckoutSession(token, plan);
-        if (url) {
-          window.location.href = url;
-        }
+      if (!token) {
+        console.error('No auth token available');
+        alert('Please sign in to upgrade');
+        return;
+      }
+
+      const response = await createCheckoutSession(token, plan);
+      console.log('Checkout response:', response);
+
+      if (response.url) {
+        window.location.href = response.url;
+      } else {
+        console.error('No checkout URL in response:', response);
+        alert('Failed to start checkout. Please try again.');
       }
     } catch (error) {
       console.error('Failed to create checkout session:', error);
+      alert('Failed to connect to payment server. Please try again.');
     }
   };
 

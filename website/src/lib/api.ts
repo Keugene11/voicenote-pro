@@ -255,7 +255,7 @@ export async function getSubscriptionStatus(token: string): Promise<Subscription
 export async function createCheckoutSession(
   token: string,
   plan: 'monthly' | 'yearly'
-): Promise<{ url: string }> {
+): Promise<{ url?: string; error?: string }> {
   const response = await fetch(`${API_URL}/stripe/create-checkout-session`, {
     method: 'POST',
     headers: {
@@ -265,7 +265,14 @@ export async function createCheckoutSession(
     body: JSON.stringify({ plan }),
   });
 
-  return response.json();
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error('Checkout API error:', response.status, data);
+    throw new Error(data.error || `Server error: ${response.status}`);
+  }
+
+  return data;
 }
 
 export async function createPortalSession(token: string): Promise<{ url: string }> {
