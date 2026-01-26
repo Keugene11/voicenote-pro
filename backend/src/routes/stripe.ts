@@ -123,12 +123,19 @@ router.post('/create-portal-session', authenticateToken, async (req: AuthRequest
 
 // Webhook handler - must use raw body
 router.post('/webhook', async (req: Request, res: Response) => {
+  console.log('Webhook received!');
   const sig = req.headers['stripe-signature'] as string;
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+
+  if (!endpointSecret) {
+    console.error('STRIPE_WEBHOOK_SECRET not configured!');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
 
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(req.body as Buffer, sig, endpointSecret);
+    console.log('Webhook verified, event type:', event.type);
   } catch (err) {
     console.error('Webhook signature verification failed:', err);
     return res.status(400).send(`Webhook Error: ${(err as Error).message}`);
@@ -141,10 +148,15 @@ router.post('/webhook', async (req: Request, res: Response) => {
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
 
+        console.log('Checkout completed:', { customerId, subscriptionId, metadata: session.metadata });
+
         // Find user by customer ID or metadata
         let user = await findUserByStripeCustomerId(customerId);
+        console.log('User by customer ID:', user?.id || 'not found');
+
         if (!user && session.metadata?.userId) {
           user = await findUserById(session.metadata.userId);
+          console.log('User by metadata userId:', user?.id || 'not found');
         }
 
         if (user) {
@@ -153,7 +165,9 @@ router.post('/webhook', async (req: Request, res: Response) => {
             stripe_subscription_id: subscriptionId,
             subscription_tier: 'pro',
           });
-          console.log(`User ${user.id} upgraded to pro`);
+          console.log(`SUCCESS: User ${user.id} (${user.email}) upgraded to pro`);
+        } else {
+          console.error('FAILED: Could not find user for checkout session');
         }
         break;
       }

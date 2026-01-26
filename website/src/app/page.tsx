@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { LogOut, Sun, Moon, Search, X, Sparkles, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +20,23 @@ export default function Home() {
   const [token, setToken] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const searchParams = useSearchParams();
+
+  // Handle return from Stripe checkout
+  useEffect(() => {
+    const subscription = searchParams.get('subscription');
+    if (subscription === 'success') {
+      // Refresh subscription status after successful payment
+      console.log('Returned from Stripe checkout, refreshing subscription...');
+      // Give webhook a moment to process, then refresh
+      setTimeout(() => {
+        refreshSubscription();
+      }, 2000);
+      // Clean up URL
+      window.history.replaceState({}, '', '/');
+    }
+  }, [searchParams, refreshSubscription]);
+
   useEffect(() => {
     if (user) {
       getToken().then(setToken);
