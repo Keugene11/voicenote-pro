@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { LogOut, Sun, Moon, Search, X, Sparkles, Play } from 'lucide-react';
+import { LogOut, Sun, Moon, Search, X, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -142,26 +142,16 @@ export default function Home() {
 
         {/* Tutorial Video */}
         <div className="max-w-2xl mx-auto mb-10">
-            <h2 className="text-center text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">
-              See how it works
-            </h2>
-            <a
-              href="https://www.loom.com/share/4756817755794be0b3aa682719e441ed"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow group"
-            >
-              <img
-                src="https://cdn.loom.com/sessions/thumbnails/4756817755794be0b3aa682719e441ed-31a67cf3b38db78e-full-play.gif"
-                alt="Watch tutorial video"
-                className="w-full aspect-video object-cover"
-              />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  <Play className="w-7 h-7 text-gray-800 ml-1" fill="currentColor" />
-                </div>
-              </div>
-            </a>
+          <h2 className="text-center text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">
+            See how it works
+          </h2>
+          <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg aspect-video">
+            <iframe
+              src="https://www.loom.com/embed/4756817755794be0b3aa682719e441ed"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full border-0"
+            />
+          </div>
         </div>
 
         {/* Notes Grid */}
