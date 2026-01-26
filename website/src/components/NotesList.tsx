@@ -204,9 +204,9 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
                 }}
                 className={`
                   rounded-lg border
-                  bg-white dark:bg-[#28292c]
+                  bg-[#FFF8F0] dark:bg-[#28292c]
                   overflow-hidden transition-all cursor-pointer
-                  ${isSelected ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-gray-200 dark:border-gray-600'}
+                  ${isSelected ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-[#EDE4D9] dark:border-gray-600'}
                   ${isHovered && !isSelected ? 'shadow-lg border-gray-300 dark:border-gray-500' : ''}
                 `}
               >
@@ -282,7 +282,7 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
 
       {/* Selection Action Bar */}
       {selectionMode && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-3 bg-white dark:bg-[#28292c] rounded-xl shadow-lg border border-gray-200 dark:border-gray-600">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-3 bg-[#FFF8F0] dark:bg-[#28292c] rounded-xl shadow-lg border border-[#EDE4D9] dark:border-gray-600">
           <span className="text-sm text-gray-600 dark:text-gray-300">
             {selectedIds.size} selected
           </span>
@@ -319,7 +319,7 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={handleBackdropClick}
         >
-          <div className="bg-white dark:bg-[#28292c] rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-[#FFF8F0] dark:bg-[#28292c] rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2">

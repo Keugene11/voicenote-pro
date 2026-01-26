@@ -177,7 +177,7 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
         {/* New Recording Button */}
         <button
           onClick={handleNewRecording}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-colors bg-[#FFF8F0] dark:bg-gray-800 hover:bg-[#F5EDE3] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-[#EDE4D9] dark:border-gray-700"
         >
           <RotateCcw className="w-4 h-4" />
           Record Another
@@ -217,14 +217,14 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
         )}
 
         {isProcessing && (
-          <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+          <div className="w-24 h-24 rounded-full bg-[#FFF8F0] dark:bg-gray-800 border border-[#EDE4D9] dark:border-gray-700 flex items-center justify-center">
             <Loader2 className="w-10 h-10 animate-spin text-amber-500" />
           </div>
         )}
       </div>
 
       {/* Status Text */}
-      <p className="text-gray-500 dark:text-gray-400">
+      <p className="text-gray-500 dark:text-gray-400 font-serif italic">
         {!isRecording && !isProcessing && 'Tap to record'}
         {isRecording && 'Tap to stop'}
         {isProcessing && 'Polishing...'}
