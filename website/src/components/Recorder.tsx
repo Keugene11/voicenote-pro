@@ -206,7 +206,15 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
 
       {/* Main Button */}
       <div className="relative">
-        {!isRecording && !isProcessing && (
+        {/* Sign in required state */}
+        {!token && !isRecording && !isProcessing && (
+          <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-not-allowed opacity-60">
+            <Mic className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+          </div>
+        )}
+
+        {/* Normal recording button - only when signed in */}
+        {token && !isRecording && !isProcessing && (
           <button
             onClick={handleStartRecording}
             className="w-24 h-24 rounded-full bg-amber-500 hover:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 transition-all hover:scale-105 active:scale-95"
@@ -233,7 +241,8 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
 
       {/* Status Text */}
       <p className="text-gray-500 dark:text-gray-400 font-serif italic">
-        {!isRecording && !isProcessing && 'Tap to record'}
+        {!token && !isRecording && !isProcessing && 'Sign in to record'}
+        {token && !isRecording && !isProcessing && 'Tap to record'}
         {isRecording && 'Tap to stop'}
         {isProcessing && 'Polishing...'}
       </p>
