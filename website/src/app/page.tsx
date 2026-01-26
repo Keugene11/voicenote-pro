@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { LogOut, Sun, Moon, Search, X, Sparkles, HelpCircle } from 'lucide-react';
+import { User, Sun, Moon, Search, X, Sparkles, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -13,7 +13,7 @@ import { LocalNotesList } from '@/components/LocalNotesList';
 import { AuthModal } from '@/components/AuthModal';
 
 function HomeContent() {
-  const { user, loading, signOut, getToken } = useAuth();
+  const { user, loading, getToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { isSubscribed, monthlyUsage, limit, refresh: refreshSubscription } = useSubscription();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -135,13 +135,13 @@ function HomeContent() {
             </button>
 
             {user ? (
-              <button
-                onClick={signOut}
+              <Link
+                href="/profile"
                 className="p-3 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                title="Sign out"
+                title="Profile"
               >
-                <LogOut className="w-5 h-5" />
-              </button>
+                <User className="w-5 h-5" />
+              </Link>
             ) : (
               <button
                 onClick={() => setShowAuthModal(true)}

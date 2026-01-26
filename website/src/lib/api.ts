@@ -235,7 +235,7 @@ export async function rephraseNote(
 // Stripe subscription functions
 export interface SubscriptionStatus {
   isSubscribed: boolean;
-  plan?: 'monthly' | 'yearly';
+  plan?: 'monthly' | 'yearly' | 'lifetime';
   status?: string;
   currentPeriodEnd?: string;
   monthlyUsage?: number;
