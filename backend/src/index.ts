@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth';
 import notesRoutes from './routes/notes';
 import transcribeRoutes from './routes/transcribe';
+import stripeRoutes from './routes/stripe';
 import { initDatabase } from './services/database';
 
 // Load environment variables
@@ -16,6 +17,10 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
+
+// Stripe webhook needs raw body - must be before express.json()
+app.use('/stripe/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '50mb' })); // Increased for base64 audio
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -38,6 +43,7 @@ app.get('/', (req, res) => {
       auth: '/auth',
       notes: '/notes',
       transcribe: '/transcribe',
+      stripe: '/stripe',
     },
   });
 });
@@ -87,6 +93,7 @@ app.get('/delete-account', (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/notes', notesRoutes);
 app.use('/transcribe', transcribeRoutes);
+app.use('/stripe', stripeRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

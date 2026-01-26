@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Mic, Square, Loader2, Copy, Check, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, Square, Loader2, Copy, Check, RotateCcw, ChevronDown, ChevronUp, Sparkles, X } from 'lucide-react';
 import { useRecorder } from '@/hooks/useRecorder';
 import { transcribeAudio, saveNote } from '@/lib/api';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface RecorderProps {
   token?: string | null;
@@ -62,6 +63,8 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const { openCheckout } = useSubscription();
 
   const handleStartRecording = async () => {
     setError(null);
@@ -108,7 +111,12 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
 
         onNoteCreated?.();
       } else {
-        setError(response.error || 'Failed to process recording');
+        // Check if it's a limit error
+        if (response.code === 'LIMIT_REACHED') {
+          setShowUpgradeModal(true);
+        } else {
+          setError(response.error || 'Failed to process recording');
+        }
       }
     } catch (err) {
       setError('Failed to connect to server. Please try again.');
@@ -234,6 +242,57 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
       {error && (
         <div className="rounded-xl px-4 py-3 text-center max-w-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
           {error}
+        </div>
+      )}
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-[#FFF8F0] dark:bg-[#28292c] rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-4 right-4 p-1 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <Sparkles className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Recording Limit Reached
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                You have used all 5 free recordings this month. Upgrade to Pro for unlimited recordings.
+              </p>
+
+              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-gray-900 dark:text-gray-100">Rabona Pro</span>
+                  <span className="text-amber-600 dark:text-amber-400 font-semibold">$5/month</span>
+                </div>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 text-left">
+                  <li>• Unlimited recordings</li>
+                  <li>• Priority processing</li>
+                  <li>• Cancel anytime</li>
+                </ul>
+              </div>
+
+              <button
+                onClick={() => openCheckout('monthly')}
+                className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors"
+              >
+                Upgrade to Pro
+              </button>
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="w-full mt-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

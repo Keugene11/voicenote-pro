@@ -20,8 +20,25 @@ export async function initDatabase(): Promise<void> {
         display_name TEXT,
         subscription_tier TEXT DEFAULT 'free',
         monthly_usage INTEGER DEFAULT 0,
+        stripe_customer_id TEXT,
+        stripe_subscription_id TEXT,
+        usage_reset_date TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Add columns if they don't exist (for existing databases)
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='stripe_customer_id') THEN
+          ALTER TABLE users ADD COLUMN stripe_customer_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='stripe_subscription_id') THEN
+          ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='usage_reset_date') THEN
+          ALTER TABLE users ADD COLUMN usage_reset_date TIMESTAMP;
+        END IF;
+      END $$;
 
       CREATE TABLE IF NOT EXISTS notes (
         id TEXT PRIMARY KEY,
@@ -49,6 +66,9 @@ export interface DBUser {
   display_name: string | null;
   subscription_tier: string;
   monthly_usage: number;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  usage_reset_date: string | null;
   created_at: string;
 }
 
@@ -164,4 +184,66 @@ export async function updateNote(
 export async function countUserNotes(userId: string): Promise<number> {
   const result = await pool.query('SELECT COUNT(*) as count FROM notes WHERE user_id = $1', [userId]);
   return parseInt(result.rows[0].count, 10);
+}
+
+// Stripe-related operations
+export async function updateUserStripeInfo(
+  userId: string,
+  updates: {
+    stripe_customer_id?: string;
+    stripe_subscription_id?: string | null;
+    subscription_tier?: string;
+  }
+): Promise<void> {
+  const fields: string[] = [];
+  const values: (string | null)[] = [];
+  let paramIndex = 2;
+
+  if (updates.stripe_customer_id !== undefined) {
+    fields.push(`stripe_customer_id = $${paramIndex++}`);
+    values.push(updates.stripe_customer_id);
+  }
+  if (updates.stripe_subscription_id !== undefined) {
+    fields.push(`stripe_subscription_id = $${paramIndex++}`);
+    values.push(updates.stripe_subscription_id);
+  }
+  if (updates.subscription_tier !== undefined) {
+    fields.push(`subscription_tier = $${paramIndex++}`);
+    values.push(updates.subscription_tier);
+  }
+
+  if (fields.length === 0) return;
+
+  await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE id = $1`, [userId, ...values]);
+}
+
+export async function findUserByStripeCustomerId(customerId: string): Promise<DBUser | undefined> {
+  const result = await pool.query('SELECT * FROM users WHERE stripe_customer_id = $1', [customerId]);
+  return result.rows[0];
+}
+
+export async function incrementMonthlyUsage(userId: string): Promise<number> {
+  const result = await pool.query(
+    'UPDATE users SET monthly_usage = monthly_usage + 1 WHERE id = $1 RETURNING monthly_usage',
+    [userId]
+  );
+  return result.rows[0]?.monthly_usage || 0;
+}
+
+export async function resetMonthlyUsageIfNeeded(userId: string): Promise<void> {
+  const user = await findUserById(userId);
+  if (!user) return;
+
+  const now = new Date();
+  const resetDate = user.usage_reset_date ? new Date(user.usage_reset_date) : null;
+
+  // If no reset date set or we've passed it, reset the usage
+  if (!resetDate || now >= resetDate) {
+    // Set next reset date to first of next month
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    await pool.query(
+      'UPDATE users SET monthly_usage = 0, usage_reset_date = $2 WHERE id = $1',
+      [userId, nextMonth.toISOString()]
+    );
+  }
 }

@@ -43,6 +43,11 @@ export interface TranscribeResponse {
     suggestions?: Suggestion[];
   };
   error?: string;
+  code?: string;
+  limitInfo?: {
+    limit: number;
+    used: number;
+  };
 }
 
 export async function transcribeAudio(
@@ -68,6 +73,18 @@ export async function transcribeAudio(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      // Handle usage limit error specially
+      if (errorData.code === 'LIMIT_REACHED') {
+        return {
+          success: false,
+          error: errorData.error || 'Monthly recording limit reached',
+          code: 'LIMIT_REACHED',
+          limitInfo: {
+            limit: errorData.limit,
+            used: errorData.used,
+          },
+        };
+      }
       return {
         success: false,
         error: errorData.error || `Server error: ${response.status}`,
@@ -221,6 +238,8 @@ export interface SubscriptionStatus {
   plan?: 'monthly' | 'yearly';
   status?: string;
   currentPeriodEnd?: string;
+  monthlyUsage?: number;
+  limit?: number;
 }
 
 export async function getSubscriptionStatus(token: string): Promise<SubscriptionStatus> {

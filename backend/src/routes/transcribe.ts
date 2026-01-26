@@ -10,6 +10,13 @@ import {
   ToneType,
 } from '../services/groq';
 import { authenticateToken, optionalAuth, AuthRequest } from '../middleware/auth';
+import {
+  findUserById,
+  incrementMonthlyUsage,
+  resetMonthlyUsageIfNeeded,
+} from '../services/database';
+
+const FREE_TIER_LIMIT = 5;
 
 const router = Router();
 
@@ -151,9 +158,31 @@ router.post(
         return;
       }
 
+      // Check usage limits for authenticated free-tier users
+      if (req.userId) {
+        await resetMonthlyUsageIfNeeded(req.userId);
+        const user = await findUserById(req.userId);
+        if (user && user.subscription_tier === 'free' && user.monthly_usage >= FREE_TIER_LIMIT) {
+          // Clean up file before returning
+          fs.unlink(req.file.path, () => {});
+          res.status(403).json({
+            error: 'Monthly recording limit reached',
+            code: 'LIMIT_REACHED',
+            limit: FREE_TIER_LIMIT,
+            used: user.monthly_usage,
+          });
+          return;
+        }
+      }
+
       const tone = (req.body.tone as ToneType) || 'professional';
 
       const result = await processAudio(req.file.path, tone);
+
+      // Increment usage for authenticated users
+      if (req.userId) {
+        await incrementMonthlyUsage(req.userId);
+      }
 
       // Clean up uploaded file
       fs.unlink(req.file.path, (err) => {
@@ -195,6 +224,21 @@ router.post('/process-base64', optionalAuth, async (req: AuthRequest, res: Respo
       return;
     }
 
+    // Check usage limits for authenticated free-tier users
+    if (req.userId) {
+      await resetMonthlyUsageIfNeeded(req.userId);
+      const user = await findUserById(req.userId);
+      if (user && user.subscription_tier === 'free' && user.monthly_usage >= FREE_TIER_LIMIT) {
+        res.status(403).json({
+          error: 'Monthly recording limit reached',
+          code: 'LIMIT_REACHED',
+          limit: FREE_TIER_LIMIT,
+          used: user.monthly_usage,
+        });
+        return;
+      }
+    }
+
     console.log('Received base64 audio, length:', audio.length);
 
     // Create temp file from base64
@@ -224,6 +268,11 @@ router.post('/process-base64', optionalAuth, async (req: AuthRequest, res: Respo
     const selectedTone = validTones.includes(tone as ToneType) ? tone as ToneType : 'professional';
 
     const result = await processAudio(tempFilePath, selectedTone);
+
+    // Increment usage for authenticated users
+    if (req.userId) {
+      await incrementMonthlyUsage(req.userId);
+    }
 
     // Clean up temp file
     fs.unlink(tempFilePath, (err) => {

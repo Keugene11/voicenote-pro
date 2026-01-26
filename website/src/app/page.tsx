@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { LogOut, Sun, Moon, Search, X } from 'lucide-react';
+import { LogOut, Sun, Moon, Search, X, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Recorder } from '@/components/Recorder';
 import { NotesList } from '@/components/NotesList';
 import { LocalNotesList } from '@/components/LocalNotesList';
@@ -12,6 +13,7 @@ import { AuthModal } from '@/components/AuthModal';
 export default function Home() {
   const { user, loading, signOut, getToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { isSubscribed, monthlyUsage, limit, openCheckout, refresh: refreshSubscription } = useSubscription();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -27,6 +29,7 @@ export default function Home() {
 
   const handleNoteCreated = () => {
     setRefreshTrigger((prev) => prev + 1);
+    refreshSubscription(); // Refresh usage count
   };
 
   if (loading) {
@@ -69,6 +72,26 @@ export default function Home() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-1">
+            {/* Usage counter for logged-in free users */}
+            {user && !isSubscribed && (
+              <button
+                onClick={() => openCheckout('monthly')}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <span>{monthlyUsage}/{limit}</span>
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span className="text-amber-600 dark:text-amber-400 font-medium">Upgrade</span>
+              </button>
+            )}
+
+            {/* Pro badge for subscribers */}
+            {user && isSubscribed && (
+              <span className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30">
+                <Sparkles className="w-4 h-4" />
+                Pro
+              </span>
+            )}
+
             <button
               onClick={toggleTheme}
               className="p-3 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
