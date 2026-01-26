@@ -24,11 +24,12 @@ app.use('/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '50mb' })); // Increased for base64 audio
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Rate limiting
+// Rate limiting (skip for webhooks)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 500, // Limit each IP to 500 requests per windowMs
   message: { error: 'Too many requests, please try again later.' },
+  skip: (req) => req.path === '/stripe/webhook', // Don't rate limit webhooks
 });
 app.use(limiter);
 
