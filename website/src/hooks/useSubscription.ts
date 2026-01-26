@@ -38,7 +38,7 @@ export function useSubscription() {
     fetchStatus();
   }, [fetchStatus]);
 
-  const openCheckout = async (plan: 'monthly' | 'yearly' = 'monthly') => {
+  const openCheckout = async (plan: 'monthly' | 'yearly' | 'lifetime' = 'monthly') => {
     try {
       const token = await getToken();
       if (!token) {

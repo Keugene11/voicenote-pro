@@ -1,222 +1,239 @@
 'use client';
 
 import { useState } from 'react';
-import { Mic, Check, Zap, Crown } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { createCheckoutSession } from '@/lib/api';
-import { AuthModal } from '@/components/AuthModal';
 import Link from 'next/link';
+import { Check, Sparkles, ArrowLeft, Infinity } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
+import { AuthModal } from '@/components/AuthModal';
+
+const tiers = [
+  {
+    name: 'Free',
+    price: '$0',
+    period: 'forever',
+    description: 'Perfect for trying out Rabona',
+    features: [
+      '5 recordings per month',
+      'AI-powered transcription',
+      'Smart text enhancement',
+      'Cloud sync for notes',
+    ],
+    cta: 'Get Started',
+    highlighted: false,
+    plan: null,
+  },
+  {
+    name: 'Pro',
+    price: '$5',
+    period: '/month',
+    description: 'For regular users who need more',
+    features: [
+      'Unlimited recordings',
+      'AI-powered transcription',
+      'Smart text enhancement',
+      'Cloud sync across devices',
+      'Priority processing',
+      'Cancel anytime',
+    ],
+    cta: 'Upgrade to Pro',
+    highlighted: true,
+    plan: 'monthly' as const,
+  },
+  {
+    name: 'Lifetime',
+    price: '$10',
+    period: 'one-time',
+    description: 'Best value - pay once, use forever',
+    features: [
+      'Unlimited recordings forever',
+      'AI-powered transcription',
+      'Smart text enhancement',
+      'Cloud sync across devices',
+      'Priority processing',
+      'All future updates included',
+    ],
+    cta: 'Get Lifetime Access',
+    highlighted: false,
+    plan: 'lifetime' as const,
+  },
+];
 
 export default function PricingPage() {
-  const { user, getToken } = useAuth();
+  const { user } = useAuth();
+  const { isSubscribed, openCheckout } = useSubscription();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [loading, setLoading] = useState<'monthly' | 'yearly' | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  const handleSubscribe = async (plan: 'monthly' | 'yearly') => {
-    console.log('Subscribe clicked, plan:', plan, 'user:', user?.email);
+  const handleSelectPlan = async (plan: 'monthly' | 'lifetime' | null) => {
+    if (!plan) return;
 
     if (!user) {
-      console.log('No user, showing auth modal');
       setShowAuthModal(true);
       return;
     }
 
-    setLoading(plan);
+    setLoadingPlan(plan);
     try {
-      const token = await getToken();
-      console.log('Got token:', token ? 'yes' : 'no');
-
-      if (!token) {
-        setShowAuthModal(true);
-        return;
-      }
-
-      console.log('Creating checkout session...');
-      const response = await createCheckoutSession(token, plan);
-      console.log('Checkout response:', response);
-
-      if (response.url) {
-        window.location.href = response.url;
-      } else {
-        // Show error from response
-        const errorMsg = (response as any).error || 'No checkout URL returned';
-        alert(`Checkout failed: ${errorMsg}`);
-      }
-    } catch (error: any) {
-      console.error('Failed to create checkout session:', error);
-      alert(`Failed to start checkout: ${error.message || 'Unknown error'}`);
+      await openCheckout(plan);
     } finally {
-      setLoading(null);
+      setLoadingPlan(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-[#FAF6F1] dark:bg-[#202124] transition-colors">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-              <Mic className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-white">Rabona</h1>
+      <header className="sticky top-0 z-40 bg-[#FAF6F1] dark:bg-[#202124] border-b border-[#E8E0D5] dark:border-gray-700/50">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to app</span>
           </Link>
+          <h1 className="text-2xl font-serif italic text-gray-800 dark:text-gray-100">Rabona</h1>
+          <div className="w-24" />
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-16">
+      <main className="max-w-6xl mx-auto px-4 py-12">
         {/* Hero */}
-        <div className="text-center space-y-4 mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-white">
-            Upgrade to{' '}
-            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Premium
-            </span>
-          </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Unlock unlimited recordings, longer duration, and priority AI processing
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-serif text-gray-900 dark:text-gray-100 mb-4">
+            Simple, transparent pricing
+          </h2>
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Transform your voice into polished text. Choose the plan that works for you.
           </p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          {/* Free Tier */}
-          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-8">
-            <div className="text-center mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-gray-800 flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-7 h-7 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Free</h3>
-              <div className="text-4xl font-bold text-white">$0</div>
-              <p className="text-gray-500 mt-1">Forever free</p>
-            </div>
-
-            <ul className="space-y-4 mb-8">
-              <li className="flex items-center text-gray-400">
-                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                10 recordings per month
-              </li>
-              <li className="flex items-center text-gray-400">
-                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                5 minutes max per recording
-              </li>
-              <li className="flex items-center text-gray-400">
-                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                AI transcription & rephrasing
-              </li>
-              <li className="flex items-center text-gray-400">
-                <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                Cloud sync
-              </li>
-            </ul>
-
-            <Link
-              href="/"
-              className="block w-full py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl text-center transition-colors"
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {tiers.map((tier) => (
+            <div
+              key={tier.name}
+              className={`relative rounded-2xl p-6 ${
+                tier.highlighted
+                  ? 'bg-gradient-to-b from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/20 border-2 border-amber-400 dark:border-amber-500 shadow-lg'
+                  : 'bg-white dark:bg-[#2D2E30] border border-gray-200 dark:border-gray-700'
+              }`}
             >
-              Get Started
-            </Link>
-          </div>
+              {tier.highlighted && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-amber-500 text-white text-sm font-medium px-3 py-1 rounded-full">
+                    Most Popular
+                  </span>
+                </div>
+              )}
 
-          {/* Monthly */}
-          <div className="bg-gray-900/50 border-2 border-purple-500 rounded-2xl p-8 relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-purple-500 text-white text-sm font-medium px-4 py-1 rounded-full">
-                Popular
-              </span>
-            </div>
+              {tier.name === 'Lifetime' && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-emerald-500 text-white text-sm font-medium px-3 py-1 rounded-full flex items-center gap-1">
+                    <Infinity className="w-4 h-4" />
+                    Best Value
+                  </span>
+                </div>
+              )}
 
-            <div className="text-center mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-purple-500/20 flex items-center justify-center mx-auto mb-4">
-                <Crown className="w-7 h-7 text-purple-400" />
+              <div className="text-center mb-6 pt-2">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  {tier.name}
+                </h3>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                    {tier.price}
+                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {tier.period}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  {tier.description}
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Monthly</h3>
-              <div className="text-4xl font-bold text-white">$4.99</div>
-              <p className="text-gray-500 mt-1">per month</p>
+
+              <ul className="space-y-3 mb-6">
+                {tier.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2">
+                    <Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-700 dark:text-gray-300 text-sm">
+                      {feature}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => handleSelectPlan(tier.plan)}
+                disabled={
+                  (tier.plan === null) ||
+                  (isSubscribed && tier.plan !== null) ||
+                  loadingPlan === tier.plan
+                }
+                className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                  tier.highlighted
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white disabled:bg-amber-300 dark:disabled:bg-amber-700'
+                    : tier.plan === 'lifetime'
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white disabled:bg-emerald-300 dark:disabled:bg-emerald-700'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                } disabled:cursor-not-allowed`}
+              >
+                {loadingPlan === tier.plan ? (
+                  <span className="animate-pulse">Loading...</span>
+                ) : isSubscribed && tier.plan !== null ? (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Already Pro
+                  </>
+                ) : (
+                  tier.cta
+                )}
+              </button>
             </div>
+          ))}
+        </div>
 
-            <ul className="space-y-4 mb-8">
-              <li className="flex items-center text-gray-300">
-                <Check className="w-5 h-5 text-purple-400 mr-3 flex-shrink-0" />
-                <strong>Unlimited</strong>&nbsp;recordings
-              </li>
-              <li className="flex items-center text-gray-300">
-                <Check className="w-5 h-5 text-purple-400 mr-3 flex-shrink-0" />
-                <strong>30 minutes</strong>&nbsp;max per recording
-              </li>
-              <li className="flex items-center text-gray-300">
-                <Check className="w-5 h-5 text-purple-400 mr-3 flex-shrink-0" />
-                Priority AI processing
-              </li>
-              <li className="flex items-center text-gray-300">
-                <Check className="w-5 h-5 text-purple-400 mr-3 flex-shrink-0" />
-                All free features included
-              </li>
-            </ul>
-
-            <button
-              onClick={() => handleSubscribe('monthly')}
-              disabled={loading === 'monthly'}
-              className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors"
-            >
-              {loading === 'monthly' ? 'Loading...' : 'Subscribe Monthly'}
-            </button>
-          </div>
-
-          {/* Yearly */}
-          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-8 relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-green-500 text-white text-sm font-medium px-4 py-1 rounded-full">
-                Save 33%
-              </span>
+        {/* FAQ */}
+        <div className="mt-16 text-center">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+            Frequently Asked Questions
+          </h3>
+          <div className="max-w-2xl mx-auto space-y-4 text-left">
+            <div className="bg-white dark:bg-[#2D2E30] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                What happens to my recordings if I cancel?
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Your existing notes remain accessible. You&apos;ll just be limited to 5 new recordings per month on the free plan.
+              </p>
             </div>
-
-            <div className="text-center mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-                <Crown className="w-7 h-7 text-green-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Yearly</h3>
-              <div className="text-4xl font-bold text-white">$39.99</div>
-              <p className="text-gray-500 mt-1">per year</p>
+            <div className="bg-white dark:bg-[#2D2E30] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                Can I upgrade from monthly to lifetime?
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Yes! Cancel your monthly subscription and purchase lifetime access. Your Pro status continues uninterrupted.
+              </p>
             </div>
-
-            <ul className="space-y-4 mb-8">
-              <li className="flex items-center text-gray-300">
-                <Check className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" />
-                <strong>Unlimited</strong>&nbsp;recordings
-              </li>
-              <li className="flex items-center text-gray-300">
-                <Check className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" />
-                <strong>30 minutes</strong>&nbsp;max per recording
-              </li>
-              <li className="flex items-center text-gray-300">
-                <Check className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" />
-                Priority AI processing
-              </li>
-              <li className="flex items-center text-gray-300">
-                <Check className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" />
-                All free features included
-              </li>
-            </ul>
-
-            <button
-              onClick={() => handleSubscribe('yearly')}
-              disabled={loading === 'yearly'}
-              className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium rounded-xl transition-colors"
-            >
-              {loading === 'yearly' ? 'Loading...' : 'Subscribe Yearly'}
-            </button>
+            <div className="bg-white dark:bg-[#2D2E30] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                Is there a refund policy?
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                We offer a 7-day money-back guarantee for both monthly and lifetime plans. No questions asked.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* FAQ or Trust */}
-        <div className="text-center mt-16 text-gray-500 text-sm">
-          <p>Cancel anytime. No questions asked.</p>
-          <p className="mt-2">Secure payments powered by Stripe</p>
+        {/* Trust */}
+        <div className="text-center mt-12 text-gray-500 dark:text-gray-400 text-sm">
+          <p>Secure payments powered by Stripe</p>
         </div>
       </main>
 
-      {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );

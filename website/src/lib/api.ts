@@ -254,7 +254,7 @@ export async function getSubscriptionStatus(token: string): Promise<Subscription
 
 export async function createCheckoutSession(
   token: string,
-  plan: 'monthly' | 'yearly'
+  plan: 'monthly' | 'yearly' | 'lifetime'
 ): Promise<{ url?: string; error?: string }> {
   const response = await fetch(`${API_URL}/stripe/create-checkout-session`, {
     method: 'POST',

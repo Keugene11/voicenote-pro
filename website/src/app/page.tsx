@@ -15,7 +15,7 @@ import { AuthModal } from '@/components/AuthModal';
 export default function Home() {
   const { user, loading, signOut, getToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { isSubscribed, monthlyUsage, limit, openCheckout, refresh: refreshSubscription } = useSubscription();
+  const { isSubscribed, monthlyUsage, limit, refresh: refreshSubscription } = useSubscription();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -101,14 +101,14 @@ export default function Home() {
 
             {/* Usage counter for logged-in free users */}
             {user && !isSubscribed && (
-              <button
-                onClick={() => openCheckout('monthly')}
+              <Link
+                href="/pricing"
                 className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <span>{monthlyUsage}/{limit}</span>
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 <span className="text-amber-600 dark:text-amber-400 font-medium">Upgrade</span>
-              </button>
+              </Link>
             )}
 
             {/* Pro badge for subscribers */}

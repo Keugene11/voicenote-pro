@@ -12,6 +12,7 @@ const router = Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
 const STRIPE_PRICE_MONTHLY = process.env.STRIPE_PRICE_MONTHLY || '';
+const STRIPE_PRICE_LIFETIME = process.env.STRIPE_PRICE_LIFETIME || '';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Get subscription status
@@ -69,11 +70,12 @@ router.get('/subscription-status', authenticateToken, async (req: AuthRequest, r
       }
     }
 
-    // No subscription - check tier directly
-    const isSubscribed = user.subscription_tier === 'pro';
-    console.log('No Stripe sub ID, checking tier. isSubscribed:', isSubscribed);
+    // No subscription - check tier directly (handles lifetime and pro)
+    const isSubscribed = user.subscription_tier === 'pro' || user.subscription_tier === 'lifetime';
+    console.log('No Stripe sub ID, checking tier. isSubscribed:', isSubscribed, 'tier:', user.subscription_tier);
     return res.json({
       isSubscribed,
+      plan: user.subscription_tier === 'lifetime' ? 'lifetime' : undefined,
       monthlyUsage: user.monthly_usage,
       limit: 5,
     });
@@ -86,6 +88,9 @@ router.get('/subscription-status', authenticateToken, async (req: AuthRequest, r
 // Create checkout session
 router.post('/create-checkout-session', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
+    const { plan } = req.body;
+    const isLifetime = plan === 'lifetime';
+
     const user = await findUserById(req.userId!);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -102,13 +107,13 @@ router.post('/create-checkout-session', authenticateToken, async (req: AuthReque
       await updateUserStripeInfo(user.id, { stripe_customer_id: customerId });
     }
 
-    // Create checkout session
+    // Create checkout session - different mode for lifetime vs subscription
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      mode: 'subscription',
+      mode: isLifetime ? 'payment' : 'subscription',
       line_items: [
         {
-          price: STRIPE_PRICE_MONTHLY,
+          price: isLifetime ? STRIPE_PRICE_LIFETIME : STRIPE_PRICE_MONTHLY,
           quantity: 1,
         },
       ],
@@ -116,6 +121,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: AuthReque
       cancel_url: `${FRONTEND_URL}?subscription=cancelled`,
       metadata: {
         userId: user.id,
+        plan: isLifetime ? 'lifetime' : 'monthly',
       },
     });
 
@@ -175,9 +181,10 @@ router.post('/webhook', async (req: Request, res: Response) => {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const customerId = session.customer as string;
-        const subscriptionId = session.subscription as string;
+        const subscriptionId = session.subscription as string | null;
+        const isLifetime = session.metadata?.plan === 'lifetime';
 
-        console.log('Checkout completed:', { customerId, subscriptionId, metadata: session.metadata });
+        console.log('Checkout completed:', { customerId, subscriptionId, metadata: session.metadata, mode: session.mode });
 
         // Find user by customer ID or metadata
         let user = await findUserByStripeCustomerId(customerId);
@@ -189,12 +196,22 @@ router.post('/webhook', async (req: Request, res: Response) => {
         }
 
         if (user) {
-          await updateUserStripeInfo(user.id, {
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId,
-            subscription_tier: 'pro',
-          });
-          console.log(`SUCCESS: User ${user.id} (${user.email}) upgraded to pro`);
+          if (isLifetime) {
+            // Lifetime purchase - one-time payment, no subscription ID
+            await updateUserStripeInfo(user.id, {
+              stripe_customer_id: customerId,
+              subscription_tier: 'lifetime',
+            });
+            console.log(`SUCCESS: User ${user.id} (${user.email}) upgraded to LIFETIME`);
+          } else {
+            // Monthly subscription
+            await updateUserStripeInfo(user.id, {
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId || undefined,
+              subscription_tier: 'pro',
+            });
+            console.log(`SUCCESS: User ${user.id} (${user.email}) upgraded to pro`);
+          }
         } else {
           console.error('FAILED: Could not find user for checkout session');
         }
@@ -207,6 +224,11 @@ router.post('/webhook', async (req: Request, res: Response) => {
         const user = await findUserByStripeCustomerId(customerId);
 
         if (user) {
+          // Don't downgrade lifetime users
+          if (user.subscription_tier === 'lifetime') {
+            console.log(`User ${user.id} has lifetime - ignoring subscription update`);
+            break;
+          }
           const isActive = subscription.status === 'active' || subscription.status === 'trialing';
           await updateUserStripeInfo(user.id, {
             stripe_subscription_id: subscription.id,
@@ -223,6 +245,11 @@ router.post('/webhook', async (req: Request, res: Response) => {
         const user = await findUserByStripeCustomerId(customerId);
 
         if (user) {
+          // Don't downgrade lifetime users
+          if (user.subscription_tier === 'lifetime') {
+            console.log(`User ${user.id} has lifetime - ignoring subscription deletion`);
+            break;
+          }
           await updateUserStripeInfo(user.id, {
             stripe_subscription_id: null,
             subscription_tier: 'free',
