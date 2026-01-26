@@ -17,22 +17,28 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 // Get subscription status
 router.get('/subscription-status', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
+    console.log('Subscription status request for userId:', req.userId);
     const user = await findUserById(req.userId!);
     if (!user) {
+      console.log('User not found for userId:', req.userId);
       return res.status(404).json({ error: 'User not found' });
     }
+
+    console.log('User found:', { id: user.id, email: user.email, tier: user.subscription_tier, stripeSubId: user.stripe_subscription_id });
 
     // If user has a subscription, fetch real-time status from Stripe
     if (user.stripe_subscription_id) {
       try {
         const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id) as Stripe.Subscription;
+        console.log('Stripe subscription status:', subscription.status);
         return res.json({
           isSubscribed: subscription.status === 'active' || subscription.status === 'trialing',
           plan: 'monthly',
           status: subscription.status,
           currentPeriodEnd: new Date((subscription as any).current_period_end * 1000).toISOString(),
         });
-      } catch {
+      } catch (stripeErr) {
+        console.error('Stripe subscription fetch failed:', stripeErr);
         // Subscription might have been deleted
         return res.json({
           isSubscribed: false,
@@ -42,9 +48,11 @@ router.get('/subscription-status', authenticateToken, async (req: AuthRequest, r
       }
     }
 
-    // No subscription
+    // No subscription - check tier directly
+    const isSubscribed = user.subscription_tier === 'pro';
+    console.log('No Stripe sub ID, checking tier. isSubscribed:', isSubscribed);
     return res.json({
-      isSubscribed: user.subscription_tier === 'pro',
+      isSubscribed,
       monthlyUsage: user.monthly_usage,
       limit: 5,
     });
