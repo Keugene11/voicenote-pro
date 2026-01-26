@@ -1,6 +1,6 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import Stripe from 'stripe';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 import {
   findUserById,
   updateUserStripeInfo,
@@ -9,15 +9,13 @@ import {
 
 const router = Router();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-04-30.basil',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
 const STRIPE_PRICE_MONTHLY = process.env.STRIPE_PRICE_MONTHLY || '';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Get subscription status
-router.get('/subscription-status', authenticateToken, async (req: Request, res: Response) => {
+router.get('/subscription-status', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const user = await findUserById(req.userId!);
     if (!user) {
@@ -27,12 +25,12 @@ router.get('/subscription-status', authenticateToken, async (req: Request, res: 
     // If user has a subscription, fetch real-time status from Stripe
     if (user.stripe_subscription_id) {
       try {
-        const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
+        const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id) as Stripe.Subscription;
         return res.json({
           isSubscribed: subscription.status === 'active' || subscription.status === 'trialing',
           plan: 'monthly',
           status: subscription.status,
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+          currentPeriodEnd: new Date((subscription as any).current_period_end * 1000).toISOString(),
         });
       } catch {
         // Subscription might have been deleted
@@ -57,7 +55,7 @@ router.get('/subscription-status', authenticateToken, async (req: Request, res: 
 });
 
 // Create checkout session
-router.post('/create-checkout-session', authenticateToken, async (req: Request, res: Response) => {
+router.post('/create-checkout-session', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const user = await findUserById(req.userId!);
     if (!user) {
@@ -100,7 +98,7 @@ router.post('/create-checkout-session', authenticateToken, async (req: Request, 
 });
 
 // Create portal session for managing subscription
-router.post('/create-portal-session', authenticateToken, async (req: Request, res: Response) => {
+router.post('/create-portal-session', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const user = await findUserById(req.userId!);
     if (!user) {
