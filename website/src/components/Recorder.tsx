@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mic, Square, Loader2, Copy, Check, RotateCcw, ChevronDown, ChevronUp, Sparkles, X } from 'lucide-react';
 import { useRecorder } from '@/hooks/useRecorder';
 import { transcribeAudio, saveNote } from '@/lib/api';
@@ -64,7 +64,19 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
   const [copied, setCopied] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [localNoteCount, setLocalNoteCount] = useState(0);
   const { openCheckout } = useSubscription();
+
+  // Track local note count for non-logged-in users
+  const LOCAL_LIMIT = 5;
+  const isLocalLimitReached = !token && localNoteCount >= LOCAL_LIMIT;
+
+  // Update local note count on mount and when notes change
+  useEffect(() => {
+    if (!token) {
+      setLocalNoteCount(getLocalNotes().length);
+    }
+  }, [token]);
 
   const handleStartRecording = async () => {
     setError(null);
@@ -107,6 +119,8 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
             processedText: response.data.processedText,
             createdAt: new Date().toISOString(),
           });
+          // Update local note count
+          setLocalNoteCount(getLocalNotes().length);
         }
 
         onNoteCreated?.();
@@ -206,15 +220,15 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
 
       {/* Main Button */}
       <div className="relative">
-        {/* Sign in required state */}
-        {!token && !isRecording && !isProcessing && (
+        {/* Local limit reached state - for non-logged-in users who hit 5 notes */}
+        {isLocalLimitReached && !isRecording && !isProcessing && (
           <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-not-allowed opacity-60">
             <Mic className="w-10 h-10 text-gray-400 dark:text-gray-500" />
           </div>
         )}
 
-        {/* Normal recording button - only when signed in */}
-        {token && !isRecording && !isProcessing && (
+        {/* Normal recording button - when signed in OR under local limit */}
+        {!isLocalLimitReached && !isRecording && !isProcessing && (
           <button
             onClick={handleStartRecording}
             className="w-24 h-24 rounded-full bg-amber-500 hover:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 transition-all hover:scale-105 active:scale-95"
@@ -241,11 +255,18 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
 
       {/* Status Text */}
       <p className="text-gray-500 dark:text-gray-400 font-serif italic">
-        {!token && !isRecording && !isProcessing && 'Sign in to record'}
-        {token && !isRecording && !isProcessing && 'Tap to record'}
+        {isLocalLimitReached && !isRecording && !isProcessing && 'Sign in to continue recording'}
+        {!isLocalLimitReached && !isRecording && !isProcessing && 'Tap to record'}
         {isRecording && 'Tap to stop'}
         {isProcessing && 'Polishing...'}
       </p>
+
+      {/* Local limit info for non-logged-in users */}
+      {!token && !isRecording && !isProcessing && (
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          {localNoteCount}/{LOCAL_LIMIT} free recordings used
+        </p>
+      )}
 
       {/* Error Display */}
       {error && (

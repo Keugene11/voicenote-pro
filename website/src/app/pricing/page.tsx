@@ -93,7 +93,7 @@ export default function PricingPage() {
             <ArrowLeft className="w-5 h-5" />
             <span>Back to app</span>
           </Link>
-          <h1 className="text-2xl font-serif italic text-gray-800 dark:text-gray-100">Rabona</h1>
+          <Link href="/" className="text-2xl font-serif italic text-gray-800 dark:text-gray-100 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">Rabona</Link>
           <div className="w-24" />
         </div>
       </header>

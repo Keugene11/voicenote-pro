@@ -64,9 +64,9 @@ function HomeContent() {
       <header className="sticky top-0 z-40 bg-[#FAF6F1] dark:bg-[#202124] border-b border-[#E8E0D5] dark:border-gray-700/50">
         <div className="flex items-center px-3 py-2 gap-2">
           {/* Logo */}
-          <div className="flex items-center gap-3 px-3">
+          <Link href="/" className="flex items-center gap-3 px-3">
             <h1 className="text-2xl font-serif italic text-gray-800 dark:text-gray-100 hidden sm:block">Rabona</h1>
-          </div>
+          </Link>
 
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl">
