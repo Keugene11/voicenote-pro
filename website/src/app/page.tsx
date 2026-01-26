@@ -147,7 +147,7 @@ export default function Home() {
           </h2>
           <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg aspect-video">
             <iframe
-              src="https://www.loom.com/embed/4756817755794be0b3aa682719e441ed"
+              src="https://www.youtube.com/embed/r952ohS07nY"
               allowFullScreen
               className="absolute inset-0 w-full h-full border-0"
             />
