@@ -45,7 +45,19 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       }
       onClose();
     } catch (err: any) {
-      setError(err.message || `Failed to ${isSignUp ? 'sign up' : 'sign in'}`);
+      // Provide user-friendly error messages
+      const errorCode = err.code || '';
+      if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/user-not-found') {
+        setError('No account found with this email. Please sign up first.');
+      } else if (errorCode === 'auth/wrong-password') {
+        setError('Incorrect password. Please try again.');
+      } else if (errorCode === 'auth/email-already-in-use') {
+        setError('An account with this email already exists. Please sign in.');
+      } else if (errorCode === 'auth/weak-password') {
+        setError('Password is too weak. Please use at least 6 characters.');
+      } else {
+        setError(err.message || `Failed to ${isSignUp ? 'sign up' : 'sign in'}`);
+      }
     } finally {
       setLoading(false);
     }
