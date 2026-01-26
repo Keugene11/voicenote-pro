@@ -67,7 +67,10 @@ export function useAuth() {
   };
 
   const getToken = async (): Promise<string | null> => {
-    if (!user) return null;
+    if (!user) {
+      console.log('getToken: No user');
+      return null;
+    }
 
     // Return cached local token if we have one
     if (localTokenRef.current) {
@@ -79,6 +82,7 @@ export function useAuth() {
 
     // Exchange for local JWT
     try {
+      console.log('Exchanging token with backend:', API_URL);
       const response = await fetch(`${API_URL}/auth/firebase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,10 +90,13 @@ export function useAuth() {
       });
 
       const data = await response.json();
+      console.log('Token exchange response:', response.status, data);
 
       if (data.success && data.token) {
         localTokenRef.current = data.token;
         return data.token;
+      } else {
+        console.error('Token exchange failed:', data);
       }
     } catch (error) {
       console.error('Token exchange error:', error);
