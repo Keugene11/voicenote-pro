@@ -2,22 +2,14 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { Resend } from 'resend';
 import { generateToken, authenticateToken, AuthRequest } from '../middleware/auth';
+import { findUserByEmail, findUserById, createUser } from '../services/database';
 
 const router = Router();
 
 // Initialize Resend (set RESEND_API_KEY in .env)
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-// In-memory store for demo (use database in production)
-const users: Map<string, {
-  id: string;
-  email: string;
-  displayName?: string;
-  subscriptionTier: 'free' | 'premium';
-  monthlyUsage: number;
-  createdAt: Date;
-}> = new Map();
-
+// OTP store (in-memory is fine for OTPs as they're short-lived)
 const otpStore: Map<string, { otp: string; expiresAt: Date }> = new Map();
 
 /**
@@ -59,19 +51,15 @@ router.post('/firebase', async (req: Request, res: Response) => {
       return;
     }
 
-    // Find or create user
-    let user = users.get(email);
+    // Find or create user in DATABASE
+    let user = await findUserByEmail(email);
 
     if (!user) {
-      user = {
+      user = await createUser({
         id: firebaseUid || uuidv4(),
         email,
         displayName,
-        subscriptionTier: 'free',
-        monthlyUsage: 0,
-        createdAt: new Date(),
-      };
-      users.set(email, user);
+      });
       console.log('Created new user from Firebase:', email);
     }
 
@@ -83,10 +71,10 @@ router.post('/firebase', async (req: Request, res: Response) => {
       user: {
         id: user.id,
         email: user.email,
-        displayName: user.displayName,
-        subscriptionTier: user.subscriptionTier,
-        monthlyUsage: user.monthlyUsage,
-        createdAt: user.createdAt,
+        displayName: user.display_name,
+        subscriptionTier: user.subscription_tier,
+        monthlyUsage: user.monthly_usage,
+        createdAt: user.created_at,
       },
       token,
     });
@@ -190,20 +178,15 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
     // OTP verified, clear it
     otpStore.delete(email);
 
-    // Find or create user
-    let user = users.get(email);
+    // Find or create user in DATABASE
+    let user = await findUserByEmail(email);
 
     if (!user) {
-      // Create new user
-      user = {
+      user = await createUser({
         id: uuidv4(),
         email,
         displayName: email.split('@')[0],
-        subscriptionTier: 'free',
-        monthlyUsage: 0,
-        createdAt: new Date(),
-      };
-      users.set(email, user);
+      });
     }
 
     // Generate token
@@ -214,10 +197,10 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       user: {
         id: user.id,
         email: user.email,
-        displayName: user.displayName,
-        subscriptionTier: user.subscriptionTier,
-        monthlyUsage: user.monthlyUsage,
-        createdAt: user.createdAt,
+        displayName: user.display_name,
+        subscriptionTier: user.subscription_tier,
+        monthlyUsage: user.monthly_usage,
+        createdAt: user.created_at,
       },
       token,
     });
@@ -233,7 +216,7 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
  */
 router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const user = Array.from(users.values()).find(u => u.id === req.userId);
+    const user = await findUserById(req.userId!);
 
     if (!user) {
       res.status(404).json({ error: 'User not found' });
@@ -244,10 +227,10 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => 
       user: {
         id: user.id,
         email: user.email,
-        displayName: user.displayName,
-        subscriptionTier: user.subscriptionTier,
-        monthlyUsage: user.monthlyUsage,
-        createdAt: user.createdAt,
+        displayName: user.display_name,
+        subscriptionTier: user.subscription_tier,
+        monthlyUsage: user.monthly_usage,
+        createdAt: user.created_at,
       },
     });
   } catch (error) {
