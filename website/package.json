@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.6.4",
+    "@vercel/analytics": "^1.6.1",
     "firebase": "^12.8.0",
     "lucide-react": "^0.562.0",
     "next": "16.1.4",
