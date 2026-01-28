@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mic, Square, Loader2, Copy, Check, RotateCcw, ChevronDown, ChevronUp, Sparkles, X } from 'lucide-react';
+import { Mic, Square, Loader2, Copy, Check, RotateCcw, ChevronDown, ChevronUp, Sparkles, X, Type, Send } from 'lucide-react';
 import { useRecorder } from '@/hooks/useRecorder';
-import { transcribeAudio, saveNote } from '@/lib/api';
+import { transcribeAudio, enhanceText, saveNote } from '@/lib/api';
 import { useSubscription } from '@/hooks/useSubscription';
 
 interface RecorderProps {
@@ -65,6 +65,8 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [localNoteCount, setLocalNoteCount] = useState(0);
+  const [mode, setMode] = useState<'voice' | 'text'>('voice');
+  const [textInput, setTextInput] = useState('');
   const { openCheckout } = useSubscription();
 
   // Track local note count for non-logged-in users
@@ -85,6 +87,53 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
       await startRecording();
     } catch (err) {
       setError('Could not access microphone. Please allow microphone permissions.');
+    }
+  };
+
+  const handleTextEnhance = async () => {
+    if (!textInput.trim()) return;
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const response = await enhanceText(textInput, token);
+      if (response.success && response.data) {
+        setResult({
+          original: response.data.originalText,
+          processed: response.data.processedText,
+        });
+
+        if (token) {
+          await saveNote(token, {
+            originalText: response.data.originalText,
+            enhancedText: response.data.processedText,
+            tone: response.data.tone,
+            detectedIntent: response.data.detectedIntent,
+          });
+        } else {
+          saveLocalNote({
+            id: crypto.randomUUID(),
+            originalText: response.data.originalText,
+            processedText: response.data.processedText,
+            createdAt: new Date().toISOString(),
+          });
+          setLocalNoteCount(getLocalNotes().length);
+        }
+
+        onNoteCreated?.();
+        setTextInput('');
+      } else {
+        if (response.code === 'LIMIT_REACHED') {
+          setShowUpgradeModal(true);
+        } else {
+          setError(response.error || 'Failed to enhance text');
+        }
+      }
+    } catch (err) {
+      setError('Failed to connect to server. Please try again.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -211,60 +260,129 @@ export function Recorder({ token, onNoteCreated }: RecorderProps) {
   // Recording view
   return (
     <div className="flex flex-col items-center space-y-6 py-6">
-      {/* Duration Display */}
-      {isRecording && (
-        <div className="text-4xl font-mono tabular-nums text-gray-900 dark:text-gray-100">
-          {formatDuration(duration)}
+      {/* Mode Toggle */}
+      {!isRecording && !isProcessing && (
+        <div className="flex items-center gap-1 p-1 bg-[#EFEAE3] dark:bg-[#3a3b3d] rounded-lg">
+          <button
+            onClick={() => setMode('voice')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              mode === 'voice'
+                ? 'bg-white dark:bg-[#28292c] text-gray-900 dark:text-gray-100 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            <Mic className="w-4 h-4" />
+            Voice
+          </button>
+          <button
+            onClick={() => setMode('text')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              mode === 'text'
+                ? 'bg-white dark:bg-[#28292c] text-gray-900 dark:text-gray-100 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            <Type className="w-4 h-4" />
+            Text
+          </button>
         </div>
       )}
 
-      {/* Main Button */}
-      <div className="relative">
-        {/* Local limit reached state - for non-logged-in users who hit 5 notes */}
-        {isLocalLimitReached && !isRecording && !isProcessing && (
-          <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-not-allowed opacity-60">
-            <Mic className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+      {/* Voice Mode */}
+      {mode === 'voice' && (
+        <>
+          {/* Duration Display */}
+          {isRecording && (
+            <div className="text-4xl font-mono tabular-nums text-gray-900 dark:text-gray-100">
+              {formatDuration(duration)}
+            </div>
+          )}
+
+          {/* Main Button */}
+          <div className="relative">
+            {/* Local limit reached state - for non-logged-in users who hit 5 notes */}
+            {isLocalLimitReached && !isRecording && !isProcessing && (
+              <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-not-allowed opacity-60">
+                <Mic className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+              </div>
+            )}
+
+            {/* Normal recording button - when signed in OR under local limit */}
+            {!isLocalLimitReached && !isRecording && !isProcessing && (
+              <button
+                onClick={handleStartRecording}
+                className="w-24 h-24 rounded-full bg-amber-500 hover:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 transition-all hover:scale-105 active:scale-95"
+              >
+                <Mic className="w-10 h-10 text-white" />
+              </button>
+            )}
+
+            {isRecording && (
+              <button
+                onClick={handleStopRecording}
+                className="w-24 h-24 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg shadow-red-500/30 transition-all hover:scale-105 active:scale-95 animate-pulse"
+              >
+                <Square className="w-10 h-10 text-white" />
+              </button>
+            )}
+
+            {isProcessing && (
+              <div className="w-24 h-24 rounded-full bg-[#FFF8F0] dark:bg-gray-800 border border-[#EDE4D9] dark:border-gray-700 flex items-center justify-center">
+                <Loader2 className="w-10 h-10 animate-spin text-amber-500" />
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Normal recording button - when signed in OR under local limit */}
-        {!isLocalLimitReached && !isRecording && !isProcessing && (
+          {/* Status Text */}
+          <p className="text-gray-500 dark:text-gray-400 font-serif italic">
+            {isLocalLimitReached && !isRecording && !isProcessing && 'Sign in to continue recording'}
+            {!isLocalLimitReached && !isRecording && !isProcessing && 'Tap to record'}
+            {isRecording && 'Tap to stop'}
+            {isProcessing && 'Polishing...'}
+          </p>
+        </>
+      )}
+
+      {/* Text Mode */}
+      {mode === 'text' && !isProcessing && (
+        <div className="w-full max-w-md space-y-4">
+          <textarea
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            placeholder="Type or paste your text here..."
+            disabled={isLocalLimitReached}
+            className="w-full h-32 p-4 rounded-xl bg-white dark:bg-[#2D2E30] border border-[#EDE4D9] dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+          />
           <button
-            onClick={handleStartRecording}
-            className="w-24 h-24 rounded-full bg-amber-500 hover:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 transition-all hover:scale-105 active:scale-95"
+            onClick={handleTextEnhance}
+            disabled={!textInput.trim() || isLocalLimitReached}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white font-medium transition-colors disabled:cursor-not-allowed"
           >
-            <Mic className="w-10 h-10 text-white" />
+            <Sparkles className="w-5 h-5" />
+            Enhance Text
           </button>
-        )}
+          {isLocalLimitReached && (
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+              Sign in to continue enhancing text
+            </p>
+          )}
+        </div>
+      )}
 
-        {isRecording && (
-          <button
-            onClick={handleStopRecording}
-            className="w-24 h-24 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg shadow-red-500/30 transition-all hover:scale-105 active:scale-95 animate-pulse"
-          >
-            <Square className="w-10 h-10 text-white" />
-          </button>
-        )}
-
-        {isProcessing && (
+      {/* Processing state for text mode */}
+      {mode === 'text' && isProcessing && (
+        <div className="flex flex-col items-center gap-4">
           <div className="w-24 h-24 rounded-full bg-[#FFF8F0] dark:bg-gray-800 border border-[#EDE4D9] dark:border-gray-700 flex items-center justify-center">
             <Loader2 className="w-10 h-10 animate-spin text-amber-500" />
           </div>
-        )}
-      </div>
-
-      {/* Status Text */}
-      <p className="text-gray-500 dark:text-gray-400 font-serif italic">
-        {isLocalLimitReached && !isRecording && !isProcessing && 'Sign in to continue recording'}
-        {!isLocalLimitReached && !isRecording && !isProcessing && 'Tap to record'}
-        {isRecording && 'Tap to stop'}
-        {isProcessing && 'Polishing...'}
-      </p>
+          <p className="text-gray-500 dark:text-gray-400 font-serif italic">Enhancing...</p>
+        </div>
+      )}
 
       {/* Local limit info for non-logged-in users */}
       {!token && !isRecording && !isProcessing && (
         <p className="text-xs text-gray-400 dark:text-gray-500">
-          {localNoteCount}/{LOCAL_LIMIT} free recordings used
+          {localNoteCount}/{LOCAL_LIMIT} free uses remaining
         </p>
       )}
 

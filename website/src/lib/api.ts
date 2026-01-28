@@ -117,6 +117,68 @@ export async function transcribeAudio(
   }
 }
 
+export async function enhanceText(
+  text: string,
+  token?: string | null
+): Promise<TranscribeResponse> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}/transcribe/rephrase`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ text, tone: 'professional' }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      if (errorData.code === 'LIMIT_REACHED') {
+        return {
+          success: false,
+          error: errorData.error,
+          code: 'LIMIT_REACHED',
+          limitInfo: {
+            limit: errorData.limit,
+            used: errorData.used,
+          },
+        };
+      }
+      return {
+        success: false,
+        error: errorData.error || `Server error: ${response.status}`,
+      };
+    }
+
+    const result = await response.json();
+
+    if (result.success && result.data) {
+      return {
+        success: true,
+        data: {
+          originalText: result.data.originalText,
+          processedText: result.data.processedText,
+          tone: result.data.tone || 'professional',
+          duration: 0,
+          detectedIntent: result.data.detectedIntent,
+        },
+      };
+    }
+
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Failed to connect to server. Please try again.',
+    };
+  }
+}
+
 export async function getNotes(token: string): Promise<Note[]> {
   const response = await fetch(`${API_URL}/notes`, {
     headers: {

@@ -115,6 +115,21 @@ router.post('/rephrase', optionalAuth, async (req: AuthRequest, res: Response) =
       return;
     }
 
+    // Check usage limits for authenticated free-tier users
+    if (req.userId) {
+      await resetMonthlyUsageIfNeeded(req.userId);
+      const user = await findUserById(req.userId);
+      if (user && user.subscription_tier === 'free' && user.monthly_usage >= FREE_TIER_LIMIT) {
+        res.status(403).json({
+          error: 'Monthly limit reached',
+          code: 'LIMIT_REACHED',
+          limit: FREE_TIER_LIMIT,
+          used: user.monthly_usage,
+        });
+        return;
+      }
+    }
+
     const validTones: ToneType[] = [
       'professional',
       'casual',
@@ -133,9 +148,19 @@ router.post('/rephrase', optionalAuth, async (req: AuthRequest, res: Response) =
 
     const result = await rephraseText(text, tone as ToneType);
 
+    // Increment usage for authenticated users
+    if (req.userId) {
+      await incrementMonthlyUsage(req.userId);
+    }
+
     res.json({
       success: true,
-      data: result,
+      data: {
+        originalText: text,
+        processedText: result.rephrasedText,
+        tone: result.tone,
+        detectedIntent: result.detectedIntent,
+      },
     });
   } catch (error) {
     console.error('Rephrasing error:', error);
