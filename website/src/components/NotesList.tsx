@@ -10,9 +10,32 @@ interface NotesListProps {
   searchQuery?: string;
 }
 
+// Cache notes in localStorage for instant loading
+const CACHE_KEY = 'rabona_notes_cache';
+
+function getCachedNotes(): Note[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    return cached ? JSON.parse(cached) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setCachedNotes(notes: Note[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(notes));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesListProps) {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Initialize with cached notes for instant display
+  const [notes, setNotes] = useState<Note[]>(() => getCachedNotes());
+  const [loading, setLoading] = useState(notes.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -29,12 +52,19 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
 
   const loadNotes = async () => {
     try {
-      setLoading(true);
+      // Only show loading if we have no cached notes
+      if (notes.length === 0) {
+        setLoading(true);
+      }
       const fetchedNotes = await getNotes(token);
       setNotes(fetchedNotes);
+      setCachedNotes(fetchedNotes);
       setError(null);
     } catch (err) {
-      setError('Failed to load notes');
+      // Only show error if we have no cached notes
+      if (notes.length === 0) {
+        setError('Failed to load notes');
+      }
     } finally {
       setLoading(false);
     }
@@ -56,7 +86,9 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
     setDeletingId(noteId);
     try {
       await deleteNote(noteId, token);
-      setNotes(notes.filter((n) => n.id !== noteId));
+      const updatedNotes = notes.filter((n) => n.id !== noteId);
+      setNotes(updatedNotes);
+      setCachedNotes(updatedNotes);
       if (selectedNote?.id === noteId) {
         setSelectedNote(null);
       }
@@ -84,7 +116,9 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
     setIsDeleting(true);
     try {
       await Promise.all(Array.from(selectedIds).map((id) => deleteNote(id, token)));
-      setNotes(notes.filter((n) => !selectedIds.has(n.id)));
+      const updatedNotes = notes.filter((n) => !selectedIds.has(n.id));
+      setNotes(updatedNotes);
+      setCachedNotes(updatedNotes);
       setSelectedIds(new Set());
     } catch (err) {
       setError('Failed to delete some notes');
@@ -119,7 +153,9 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
       setSaving(true);
       const updated = await updateNote(selectedNote.id, token, { enhancedText: editedText });
       if (updated) {
-        setNotes(notes.map((n) => (n.id === selectedNote.id ? { ...n, processedText: editedText } : n)));
+        const updatedNotes = notes.map((n) => (n.id === selectedNote.id ? { ...n, processedText: editedText } : n));
+        setNotes(updatedNotes);
+        setCachedNotes(updatedNotes);
       }
       setSaving(false);
     }
