@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { NotesProvider } from "@/contexts/NotesContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -32,7 +33,9 @@ export default function RootLayout({
         style={{ background: 'var(--background)', color: 'var(--foreground)' }}
       >
         <ThemeProvider>
-          {children}
+          <NotesProvider>
+            {children}
+          </NotesProvider>
         </ThemeProvider>
         <Analytics />
       </body>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Trash2, Copy, Check, Loader2, X, ChevronDown, ChevronUp, CheckSquare, Square } from 'lucide-react';
-import { Note, getNotes, deleteNote, updateNote } from '@/lib/api';
+import { Note, deleteNote as apiDeleteNote, updateNote as apiUpdateNote } from '@/lib/api';
+import { useNotes } from '@/contexts/NotesContext';
 
 interface NotesListProps {
   token: string;
@@ -10,33 +11,8 @@ interface NotesListProps {
   searchQuery?: string;
 }
 
-// Cache notes in localStorage for instant loading
-const CACHE_KEY = 'rabona_notes_cache';
-
-function getCachedNotes(): Note[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    return cached ? JSON.parse(cached) : [];
-  } catch {
-    return [];
-  }
-}
-
-function setCachedNotes(notes: Note[]) {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(notes));
-  } catch {
-    // Ignore storage errors
-  }
-}
-
 export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesListProps) {
-  // Initialize with cached notes for instant display
-  const [notes, setNotes] = useState<Note[]>(() => getCachedNotes());
-  const [loading, setLoading] = useState(notes.length === 0);
-  const [error, setError] = useState<string | null>(null);
+  const { notes, loading, error, refreshNotes, updateNote, deleteNote } = useNotes();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -50,35 +26,12 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
 
   const selectionMode = selectedIds.size > 0;
 
-  const loadNotes = async () => {
-    // If no token, just use cached notes (don't try to fetch)
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Only show loading if we have no cached notes
-      if (notes.length === 0) {
-        setLoading(true);
-      }
-      const fetchedNotes = await getNotes(token);
-      setNotes(fetchedNotes);
-      setCachedNotes(fetchedNotes);
-      setError(null);
-    } catch (err) {
-      // Only show error if we have no cached notes
-      if (notes.length === 0) {
-        setError('Failed to load notes');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Refresh notes when token or refreshTrigger changes
   useEffect(() => {
-    loadNotes();
-  }, [token, refreshTrigger]);
+    if (token) {
+      refreshNotes(token);
+    }
+  }, [token, refreshTrigger, refreshNotes]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -91,17 +44,15 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
   const handleDelete = async (noteId: string) => {
     setDeletingId(noteId);
     try {
-      await deleteNote(noteId, token);
-      const updatedNotes = notes.filter((n) => n.id !== noteId);
-      setNotes(updatedNotes);
-      setCachedNotes(updatedNotes);
+      await apiDeleteNote(noteId, token);
+      deleteNote(noteId);
       if (selectedNote?.id === noteId) {
         setSelectedNote(null);
       }
       selectedIds.delete(noteId);
       setSelectedIds(new Set(selectedIds));
     } catch (err) {
-      setError('Failed to delete note');
+      console.error('Failed to delete note:', err);
     } finally {
       setDeletingId(null);
     }
@@ -121,13 +72,11 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
     if (selectedIds.size === 0) return;
     setIsDeleting(true);
     try {
-      await Promise.all(Array.from(selectedIds).map((id) => deleteNote(id, token)));
-      const updatedNotes = notes.filter((n) => !selectedIds.has(n.id));
-      setNotes(updatedNotes);
-      setCachedNotes(updatedNotes);
+      await Promise.all(Array.from(selectedIds).map((id) => apiDeleteNote(id, token)));
+      selectedIds.forEach(id => deleteNote(id));
       setSelectedIds(new Set());
     } catch (err) {
-      setError('Failed to delete some notes');
+      console.error('Failed to delete some notes:', err);
     } finally {
       setIsDeleting(false);
     }
@@ -157,11 +106,9 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
     // Save if text has changed
     if (selectedNote && editedText !== selectedNote.processedText) {
       setSaving(true);
-      const updated = await updateNote(selectedNote.id, token, { enhancedText: editedText });
+      const updated = await apiUpdateNote(selectedNote.id, token, { enhancedText: editedText });
       if (updated) {
-        const updatedNotes = notes.map((n) => (n.id === selectedNote.id ? { ...n, processedText: editedText } : n));
-        setNotes(updatedNotes);
-        setCachedNotes(updatedNotes);
+        updateNote(selectedNote.id, { processedText: editedText });
       }
       setSaving(false);
     }
@@ -185,7 +132,7 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
     );
   });
 
-  if (loading) {
+  if (loading && notes.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
@@ -193,12 +140,12 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
     );
   }
 
-  if (error) {
+  if (error && notes.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-red-500 dark:text-red-400 mb-3 text-sm">{error}</p>
         <button
-          onClick={loadNotes}
+          onClick={() => token && refreshNotes(token)}
           className="px-4 py-2 bg-amber-500 hover:bg-amber-600 rounded-lg text-white text-sm font-medium transition-colors"
         >
           Retry

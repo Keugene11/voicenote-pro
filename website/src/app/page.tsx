@@ -22,13 +22,6 @@ function HomeContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const searchParams = useSearchParams();
 
-  // Check if user was previously logged in (has cached notes)
-  const [hasCachedNotes, setHasCachedNotes] = useState(false);
-  useEffect(() => {
-    const cached = localStorage.getItem('rabona_notes_cache');
-    setHasCachedNotes(!!cached && cached !== '[]');
-  }, []);
-
   // Handle return from Stripe checkout
   useEffect(() => {
     const subscription = searchParams.get('subscription');
@@ -180,12 +173,9 @@ function HomeContent() {
 
         {/* Notes Grid */}
         <div className="mt-4 max-w-5xl mx-auto">
-          {/* Show NotesList if logged in, or while loading if we have cached notes */}
-          {user && token ? (
-            <NotesList token={token} refreshTrigger={refreshTrigger} searchQuery={searchQuery} />
-          ) : loading && hasCachedNotes ? (
-            // While auth is loading, show cached server notes
-            <NotesList token="" refreshTrigger={refreshTrigger} searchQuery={searchQuery} />
+          {/* Show NotesList if logged in (notes state persists in context) */}
+          {user ? (
+            <NotesList token={token || ''} refreshTrigger={refreshTrigger} searchQuery={searchQuery} />
           ) : (
             <LocalNotesList refreshTrigger={refreshTrigger} searchQuery={searchQuery} />
           )}
