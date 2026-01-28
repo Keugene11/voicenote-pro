@@ -68,11 +68,16 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
   const [localNoteCount, setLocalNoteCount] = useState(0);
   const [mode, setMode] = useState<'voice' | 'text'>('voice');
   const [textInput, setTextInput] = useState('');
-  const { openCheckout } = useSubscription();
+  const { openCheckout, isSubscribed, monthlyUsage, limit, hasFetchedOnce } = useSubscription();
 
   // Track local note count for non-logged-in users
   const LOCAL_LIMIT = 5;
   const isLocalLimitReached = !isLoggedIn && localNoteCount >= LOCAL_LIMIT;
+
+  // For logged-in free users, check server-side limit
+  const isFreeUser = isLoggedIn && !isSubscribed;
+  const freeUsageRemaining = limit - monthlyUsage;
+  const isServerLimitReached = isFreeUser && monthlyUsage >= limit;
 
   // Update local note count on mount and when notes change
   useEffect(() => {
@@ -301,15 +306,18 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
 
           {/* Main Button */}
           <div className="relative">
-            {/* Local limit reached state - for non-logged-in users who hit 5 notes */}
-            {isLocalLimitReached && !isRecording && !isProcessing && (
-              <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-not-allowed opacity-60">
+            {/* Limit reached state - for non-logged-in users OR logged-in free users at limit */}
+            {(isLocalLimitReached || isServerLimitReached) && !isRecording && !isProcessing && (
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
                 <Mic className="w-10 h-10 text-gray-400 dark:text-gray-500" />
-              </div>
+              </button>
             )}
 
-            {/* Normal recording button - when signed in OR under local limit */}
-            {!isLocalLimitReached && !isRecording && !isProcessing && (
+            {/* Normal recording button - when under limit */}
+            {!isLocalLimitReached && !isServerLimitReached && !isRecording && !isProcessing && (
               <button
                 onClick={handleStartRecording}
                 className="w-24 h-24 rounded-full bg-amber-500 hover:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 transition-all hover:scale-105 active:scale-95"
@@ -337,10 +345,21 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
           {/* Status Text */}
           <p className="text-gray-500 dark:text-gray-400 font-serif italic">
             {isLocalLimitReached && !isRecording && !isProcessing && 'Sign in to continue recording'}
-            {!isLocalLimitReached && !isRecording && !isProcessing && 'Tap to record'}
+            {isServerLimitReached && !isRecording && !isProcessing && 'Monthly limit reached'}
+            {!isLocalLimitReached && !isServerLimitReached && !isRecording && !isProcessing && 'Tap to record'}
             {isRecording && 'Tap to stop'}
             {isProcessing && 'Polishing...'}
           </p>
+
+          {/* Free tier usage indicator */}
+          {isFreeUser && hasFetchedOnce && !isRecording && !isProcessing && (
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              {freeUsageRemaining > 0
+                ? `${freeUsageRemaining} free recording${freeUsageRemaining !== 1 ? 's' : ''} remaining`
+                : <button onClick={() => setShowUpgradeModal(true)} className="text-amber-600 dark:text-amber-400 hover:underline">Upgrade to Pro</button>
+              }
+            </p>
+          )}
         </>
       )}
 
@@ -351,12 +370,12 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             placeholder="Type or paste your text here..."
-            disabled={isLocalLimitReached}
+            disabled={isLocalLimitReached || isServerLimitReached}
             className="w-full h-32 p-4 rounded-xl bg-white dark:bg-[#2D2E30] border border-[#EDE4D9] dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <button
             onClick={handleTextEnhance}
-            disabled={!textInput.trim() || isLocalLimitReached}
+            disabled={!textInput.trim() || isLocalLimitReached || isServerLimitReached}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white font-medium transition-colors disabled:cursor-not-allowed"
           >
             <Sparkles className="w-5 h-5" />
@@ -365,6 +384,19 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
           {isLocalLimitReached && (
             <p className="text-center text-sm text-gray-500 dark:text-gray-400">
               Sign in to continue enhancing text
+            </p>
+          )}
+          {isServerLimitReached && (
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="w-full text-center text-sm text-amber-600 dark:text-amber-400 hover:underline"
+            >
+              Upgrade to Pro for unlimited recordings
+            </button>
+          )}
+          {isFreeUser && hasFetchedOnce && !isServerLimitReached && (
+            <p className="text-center text-sm text-gray-400 dark:text-gray-500">
+              {freeUsageRemaining} free recording{freeUsageRemaining !== 1 ? 's' : ''} remaining
             </p>
           )}
         </div>
