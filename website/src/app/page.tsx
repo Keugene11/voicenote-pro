@@ -136,7 +136,7 @@ function HomeContent() {
       <main className="px-4 sm:px-6 lg:px-10 py-6">
         {/* Recorder */}
         <div className="max-w-xl mx-auto mb-8">
-          <Recorder token={token} isLoggedIn={!!user} onNoteCreated={handleNoteCreated} />
+          <Recorder token={token} isLoggedIn={!!user} onNoteCreated={handleNoteCreated} refreshTrigger={refreshTrigger} />
         </div>
 
         {/* Tutorial Video for non-logged-in users */}
@@ -161,7 +161,7 @@ function HomeContent() {
           {user ? (
             <NotesList token={token || ''} refreshTrigger={refreshTrigger} searchQuery={searchQuery} />
           ) : (
-            <LocalNotesList refreshTrigger={refreshTrigger} searchQuery={searchQuery} />
+            <LocalNotesList refreshTrigger={refreshTrigger} searchQuery={searchQuery} onNoteDeleted={handleNoteCreated} />
           )}
         </div>
       </main>

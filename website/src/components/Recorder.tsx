@@ -10,6 +10,7 @@ interface RecorderProps {
   token?: string | null;
   isLoggedIn?: boolean;
   onNoteCreated?: () => void;
+  refreshTrigger?: number;
 }
 
 interface LocalNote {
@@ -50,7 +51,7 @@ export function updateLocalNote(id: string, updates: { processedText?: string })
   localStorage.setItem('rabona_local_notes', JSON.stringify(notes));
 }
 
-export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
+export function Recorder({ token, isLoggedIn, onNoteCreated, refreshTrigger }: RecorderProps) {
   const {
     isRecording,
     duration,
@@ -85,7 +86,7 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
     if (!isLoggedIn) {
       setLocalNoteCount(getLocalNotes().length);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, refreshTrigger]);
 
   const handleStartRecording = async () => {
     setError(null);

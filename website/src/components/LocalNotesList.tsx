@@ -14,9 +14,10 @@ interface LocalNote {
 interface LocalNotesListProps {
   refreshTrigger?: number;
   searchQuery?: string;
+  onNoteDeleted?: () => void;
 }
 
-export function LocalNotesList({ refreshTrigger, searchQuery = '' }: LocalNotesListProps) {
+export function LocalNotesList({ refreshTrigger, searchQuery = '', onNoteDeleted }: LocalNotesListProps) {
   const [notes, setNotes] = useState<LocalNote[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export function LocalNotesList({ refreshTrigger, searchQuery = '' }: LocalNotesL
     }
     selectedIds.delete(noteId);
     setSelectedIds(new Set(selectedIds));
+    onNoteDeleted?.();
   };
 
   const toggleSelect = (noteId: string) => {
@@ -68,6 +70,7 @@ export function LocalNotesList({ refreshTrigger, searchQuery = '' }: LocalNotesL
       Array.from(selectedIds).forEach((id) => deleteLocalNote(id));
       setNotes(notes.filter((n) => !selectedIds.has(n.id)));
       setSelectedIds(new Set());
+      onNoteDeleted?.();
     } finally {
       setIsDeleting(false);
     }
