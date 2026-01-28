@@ -113,10 +113,13 @@ function HomeContent() {
             {user ? (
               <Link
                 href="/profile"
-                className="p-3 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 title="Profile"
               >
                 <User className="w-5 h-5" />
+                <span className="text-sm hidden sm:inline max-w-[120px] truncate">
+                  {user.email?.split('@')[0]}
+                </span>
               </Link>
             ) : (
               <button
