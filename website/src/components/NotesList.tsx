@@ -51,6 +51,12 @@ export function NotesList({ token, refreshTrigger, searchQuery = '' }: NotesList
   const selectionMode = selectedIds.size > 0;
 
   const loadNotes = async () => {
+    // If no token, just use cached notes (don't try to fetch)
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     try {
       // Only show loading if we have no cached notes
       if (notes.length === 0) {
