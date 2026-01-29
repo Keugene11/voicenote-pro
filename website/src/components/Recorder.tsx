@@ -69,9 +69,7 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
   const [mode, setMode] = useState<'voice' | 'text'>('voice');
   const [textInput, setTextInput] = useState('');
   const { openCheckout } = useSubscription();
-
-  // Must be signed in to use
-  const canRecord = isLoggedIn;
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
 
   const handleStartRecording = async () => {
     setError(null);
@@ -85,6 +83,12 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
 
   const handleTextEnhance = async () => {
     if (!textInput.trim()) return;
+
+    // If not logged in, show sign-in prompt
+    if (!isLoggedIn) {
+      setShowSignInPrompt(true);
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -103,13 +107,6 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
             enhancedText: response.data.processedText,
             tone: response.data.tone,
             detectedIntent: response.data.detectedIntent,
-          });
-        } else {
-          saveLocalNote({
-            id: crypto.randomUUID(),
-            originalText: response.data.originalText,
-            processedText: response.data.processedText,
-            createdAt: new Date().toISOString(),
           });
         }
 
@@ -133,6 +130,12 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
     const blob = await stopRecording();
     if (!blob) return;
 
+    // If not logged in, show sign-in prompt
+    if (!isLoggedIn) {
+      setShowSignInPrompt(true);
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
@@ -151,14 +154,6 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
             enhancedText: response.data.processedText,
             tone: response.data.tone,
             detectedIntent: response.data.detectedIntent,
-          });
-        } else {
-          // Save to localStorage if not logged in
-          saveLocalNote({
-            id: crypto.randomUUID(),
-            originalText: response.data.originalText,
-            processedText: response.data.processedText,
-            createdAt: new Date().toISOString(),
           });
         }
 
@@ -290,15 +285,8 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
 
           {/* Main Button */}
           <div className="relative">
-            {/* Must be signed in */}
-            {!canRecord && !isRecording && !isProcessing && (
-              <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                <Mic className="w-10 h-10 text-gray-400 dark:text-gray-500" />
-              </div>
-            )}
-
-            {/* Normal recording button - when subscribed */}
-            {canRecord && !isRecording && !isProcessing && (
+            {/* Recording button - always available */}
+            {!isRecording && !isProcessing && (
               <button
                 onClick={handleStartRecording}
                 className="w-24 h-24 rounded-full bg-amber-500 hover:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 transition-all hover:scale-105 active:scale-95"
@@ -325,8 +313,7 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
 
           {/* Status Text */}
           <p className="text-gray-500 dark:text-gray-400 font-serif italic">
-            {!canRecord && !isRecording && !isProcessing && 'Sign in to start recording'}
-            {canRecord && !isRecording && !isProcessing && 'Tap to record'}
+            {!isRecording && !isProcessing && 'Tap to record'}
             {isRecording && 'Tap to stop'}
             {isProcessing && 'Polishing...'}
           </p>
@@ -340,22 +327,16 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             placeholder="Type or paste your text here..."
-            disabled={!canRecord}
-            className="w-full h-32 p-4 rounded-xl bg-white dark:bg-[#2D2E30] border border-[#EDE4D9] dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-32 p-4 rounded-xl bg-white dark:bg-[#2D2E30] border border-[#EDE4D9] dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
           />
           <button
             onClick={handleTextEnhance}
-            disabled={!textInput.trim() || !canRecord}
+            disabled={!textInput.trim()}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white font-medium transition-colors disabled:cursor-not-allowed"
           >
             <Sparkles className="w-5 h-5" />
             Enhance Text
           </button>
-          {!canRecord && (
-            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-              Sign in to enhance text
-            </p>
-          )}
         </div>
       )}
 
@@ -418,6 +399,55 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
               </button>
               <button
                 onClick={() => setShowUpgradeModal(false)}
+                className="w-full mt-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sign In Prompt Modal */}
+      {showSignInPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-[#FFF8F0] dark:bg-[#28292c] rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button
+              onClick={() => {
+                setShowSignInPrompt(false);
+                resetRecording();
+              }}
+              className="absolute top-4 right-4 p-1 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <Mic className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Sign in to see your result
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Create a free account to view your polished recording and save it for later.
+              </p>
+
+              <button
+                onClick={() => {
+                  setShowSignInPrompt(false);
+                  resetRecording();
+                  // The sign-in button is in the header, user will click it
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors"
+              >
+                Sign in to continue
+              </button>
+              <button
+                onClick={() => {
+                  setShowSignInPrompt(false);
+                  resetRecording();
+                }}
                 className="w-full mt-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 Maybe later
