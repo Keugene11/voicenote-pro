@@ -11,6 +11,19 @@ import {
 
 const SUBSCRIPTION_CACHE_KEY = 'rabona_subscription_cache';
 
+function getCachedSubscription(): SubscriptionStatus | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem(SUBSCRIPTION_CACHE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return null;
+}
+
 function setCachedSubscription(status: SubscriptionStatus | null) {
   if (typeof window === 'undefined') return;
   try {
@@ -25,7 +38,8 @@ function setCachedSubscription(status: SubscriptionStatus | null) {
 }
 
 export function useSubscription() {
-  const [status, setStatus] = useState<SubscriptionStatus | null>(null);
+  // Initialize with cached status for instant display
+  const [status, setStatus] = useState<SubscriptionStatus | null>(() => getCachedSubscription());
   const [loading, setLoading] = useState(true);
   const [statusForUserId, setStatusForUserId] = useState<string | null>(null);
   const { user, getToken } = useAuth();
@@ -97,12 +111,12 @@ export function useSubscription() {
     }
   };
 
-  // Only consider status valid if it's for the current user
-  // This prevents showing stale status (like 0/5) when user changes
-  const hasValidStatus = user !== null && statusForUserId === user.uid;
+  // Consider status valid if:
+  // 1. We have fetched for current user, OR
+  // 2. We have cached status and user is logged in (cache will be validated by background fetch)
+  const hasValidStatus = user !== null && (statusForUserId === user.uid || status !== null);
 
-  // Only return isSubscribed: true if we have valid status confirming subscription
-  // This ensures we never show wrong state due to timing issues
+  // Return isSubscribed based on status - cached or fetched
   const isSubscribed = hasValidStatus && status?.isSubscribed === true;
 
   return {
