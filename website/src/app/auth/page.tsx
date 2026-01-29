@@ -204,6 +204,12 @@ export default function AuthPage() {
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
           By continuing, you agree to our Terms of Service and Privacy Policy
         </p>
+        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-2">
+          Need help?{' '}
+          <a href="mailto:rabona8712@gmail.com" className="text-amber-600 dark:text-amber-400 hover:underline">
+            Contact support
+          </a>
+        </p>
       </div>
     </div>
   );

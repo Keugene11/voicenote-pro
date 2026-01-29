@@ -163,6 +163,14 @@ export default function ProfilePage() {
             <LogOut className="w-5 h-5" />
             Sign Out
           </button>
+
+          {/* Support */}
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+            Need help?{' '}
+            <a href="mailto:rabona8712@gmail.com" className="text-amber-600 dark:text-amber-400 hover:underline">
+              Contact support
+            </a>
+          </p>
         </div>
       </main>
     </div>
