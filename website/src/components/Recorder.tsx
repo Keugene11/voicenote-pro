@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mic, Square, Loader2, Copy, Check, RotateCcw, ChevronDown, ChevronUp, Sparkles, X, Type } from 'lucide-react';
 import { useRecorder } from '@/hooks/useRecorder';
@@ -52,6 +52,23 @@ export function updateLocalNote(id: string, updates: { processedText?: string })
   localStorage.setItem('rabona_local_notes', JSON.stringify(notes));
 }
 
+const PENDING_RESULT_KEY = 'rabona_pending_result';
+
+function savePendingResult(result: { original: string; processed: string }) {
+  localStorage.setItem(PENDING_RESULT_KEY, JSON.stringify(result));
+}
+
+function getPendingResult(): { original: string; processed: string } | null {
+  try {
+    const saved = localStorage.getItem(PENDING_RESULT_KEY);
+    if (saved) {
+      localStorage.removeItem(PENDING_RESULT_KEY);
+      return JSON.parse(saved);
+    }
+  } catch {}
+  return null;
+}
+
 export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
   const router = useRouter();
   const {
@@ -65,6 +82,25 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<{ original: string; processed: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Check for pending result after sign-in
+  useEffect(() => {
+    if (isLoggedIn) {
+      const pending = getPendingResult();
+      if (pending) {
+        setResult(pending);
+        // Save to server now that user is logged in
+        if (token) {
+          saveNote(token, {
+            originalText: pending.original,
+            enhancedText: pending.processed,
+          }).then(() => {
+            onNoteCreated?.();
+          });
+        }
+      }
+    }
+  }, [isLoggedIn, token, onNoteCreated]);
   const [copied, setCopied] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -85,22 +121,25 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
   const handleTextEnhance = async () => {
     if (!textInput.trim()) return;
 
-    // If not logged in, redirect to auth page
-    if (!isLoggedIn) {
-      router.push('/auth');
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
     try {
       const response = await enhanceText(textInput, token);
       if (response.success && response.data) {
-        setResult({
+        const resultData = {
           original: response.data.originalText,
           processed: response.data.processedText,
-        });
+        };
+
+        // If not logged in, save result and redirect to auth
+        if (!isLoggedIn) {
+          savePendingResult(resultData);
+          router.push('/auth');
+          return;
+        }
+
+        setResult(resultData);
 
         if (token) {
           await saveNote(token, {
@@ -131,22 +170,25 @@ export function Recorder({ token, isLoggedIn, onNoteCreated }: RecorderProps) {
     const blob = await stopRecording();
     if (!blob) return;
 
-    // If not logged in, redirect to auth page
-    if (!isLoggedIn) {
-      router.push('/auth');
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
     try {
       const response = await transcribeAudio(blob, token);
       if (response.success && response.data) {
-        setResult({
+        const resultData = {
           original: response.data.originalText,
           processed: response.data.processedText,
-        });
+        };
+
+        // If not logged in, save result and redirect to auth
+        if (!isLoggedIn) {
+          savePendingResult(resultData);
+          router.push('/auth');
+          return;
+        }
+
+        setResult(resultData);
 
         if (token) {
           // Save to server if logged in
