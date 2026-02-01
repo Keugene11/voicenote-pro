@@ -267,7 +267,7 @@ export function LocalNotesList({ refreshTrigger, searchQuery = '', onNoteDeleted
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={handleBackdropClick}
         >
-          <div className="bg-[#FFF8F0] dark:bg-[#28292c] rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-[#FFF8F0] dark:bg-[#28292c] rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col mx-4">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2" />
@@ -301,12 +301,13 @@ export function LocalNotesList({ refreshTrigger, searchQuery = '', onNoteDeleted
             </div>
 
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
               <textarea
                 ref={textareaRef}
                 value={editedText}
                 onChange={(e) => setEditedText(e.target.value)}
-                className="w-full bg-transparent border-none outline-none resize-none text-gray-800 dark:text-gray-200 text-base leading-relaxed min-h-[200px]"
+                className="w-full bg-transparent border-none outline-none resize-none text-gray-800 dark:text-gray-200 text-base leading-relaxed min-h-[200px] break-words"
+                style={{ wordBreak: 'break-word' }}
                 placeholder="Enter your note..."
               />
 

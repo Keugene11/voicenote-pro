@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { User, Sun, Moon, Search, X, HelpCircle } from 'lucide-react';
+import { User, Sun, Moon, Search, X, HelpCircle, Menu } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -20,7 +20,22 @@ function HomeContent() {
   const [token, setToken] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    }
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [mobileMenuOpen]);
 
   // Handle return from Stripe checkout
   useEffect(() => {
@@ -54,19 +69,19 @@ function HomeContent() {
   // This prevents flickering when navigating between pages
 
   return (
-    <div className="min-h-screen bg-[#FAF6F1] dark:bg-[#202124] transition-colors">
+    <div className="min-h-screen bg-[#FAF6F1] dark:bg-[#202124] transition-colors overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#FAF6F1] dark:bg-[#202124] border-b border-[#E8E0D5] dark:border-gray-700/50">
-        <div className="flex items-center px-3 py-2 gap-2">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 px-3">
-            <h1 className="text-2xl font-serif italic text-gray-800 dark:text-gray-100 hidden sm:block">Rabona</h1>
+      <header className="sticky top-0 z-40 bg-[#FAF6F1] dark:bg-[#202124] border-b border-[#E8E0D5] dark:border-gray-700/50 overflow-hidden">
+        <div className="flex items-center px-2 sm:px-3 py-2 gap-1 sm:gap-2 max-w-full">
+          {/* Logo - hidden on mobile/tablet */}
+          <Link href="/" className="hidden md:flex flex-shrink-0 items-center gap-3 px-3">
+            <h1 className="text-2xl font-serif italic text-gray-800 dark:text-gray-100">Rabona</h1>
           </Link>
 
           {/* Search Bar */}
-          <div className="flex-1 max-w-2xl">
-            <div className="flex items-center bg-[#EFEAE3] dark:bg-[#525355] rounded-lg px-4 py-2.5 gap-3">
-              <Search className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <div className="flex-1 min-w-0 max-w-2xl">
+            <div className="flex items-center bg-[#EFEAE3] dark:bg-[#525355] rounded-lg px-2 sm:px-4 py-2 sm:py-2.5 gap-2 sm:gap-3">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
               <input
                 type="text"
                 placeholder="Search notes..."
@@ -83,25 +98,22 @@ function HomeContent() {
             </div>
           </div>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-1">
-            {/* Tutorial link */}
+          {/* Desktop Actions - hidden on mobile/tablet */}
+          <div className="hidden md:flex items-center gap-1 flex-shrink-0">
             <Link
               href="/tutorial"
-              className="hidden sm:flex items-center gap-1 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+              className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
             >
               <HelpCircle className="w-4 h-4" />
               Tutorial
             </Link>
 
-            {/* Pricing link - always visible */}
             <Link
               href="/pricing"
-              className="flex items-center gap-1 px-2 sm:px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+              className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
             >
               Pricing
             </Link>
-
 
             <button
               onClick={toggleTheme}
@@ -117,7 +129,7 @@ function HomeContent() {
                 title="Profile"
               >
                 <User className="w-5 h-5" />
-                <span className="text-sm hidden sm:inline max-w-[120px] truncate">
+                <span className="text-sm max-w-[120px] truncate">
                   {user.email?.split('@')[0]}
                 </span>
               </Link>
@@ -128,6 +140,69 @@ function HomeContent() {
               >
                 Sign In
               </button>
+            )}
+          </div>
+
+          {/* Mobile hamburger menu - only visible on mobile/tablet */}
+          <div ref={mobileMenuRef} className="relative md:hidden flex-shrink-0">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            {/* Dropdown menu with all options */}
+            {mobileMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#2D2E30] rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                {user && (
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700"
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="truncate">{user.email?.split('@')[0]}</span>
+                  </Link>
+                )}
+                <Link
+                  href="/tutorial"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  Tutorial
+                </Link>
+                <Link
+                  href="/pricing"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Pricing
+                </Link>
+                <button
+                  onClick={() => {
+                    toggleTheme();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                </button>
+                {!user && (
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setShowAuthModal(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                      <User className="w-4 h-4" />
+                      Sign In
+                    </button>
+                  )}
+                </div>
             )}
           </div>
         </div>

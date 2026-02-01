@@ -46,6 +46,11 @@
   --font-serif: var(--font-playfair);
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

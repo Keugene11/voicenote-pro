@@ -29,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${playfair.variable} antialiased font-sans`}
+        className={`${inter.variable} ${playfair.variable} antialiased font-sans overflow-x-hidden`}
         style={{ background: 'var(--background)', color: 'var(--foreground)' }}
       >
         <ThemeProvider>
