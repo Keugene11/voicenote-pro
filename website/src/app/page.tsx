@@ -73,6 +73,69 @@ function HomeContent() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[#FAF6F1] dark:bg-[#202124] border-b border-[#E8E0D5] dark:border-gray-700/50">
         <div className="flex items-center px-2 sm:px-3 py-2 gap-1 sm:gap-2 max-w-full">
+          {/* Mobile hamburger menu - only visible on mobile/tablet */}
+          <div ref={mobileMenuRef} className="relative md:hidden flex-shrink-0">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            {/* Dropdown menu with all options */}
+            {mobileMenuOpen && (
+              <div className="absolute left-0 top-full mt-2 w-56 bg-white dark:bg-[#2D2E30] rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                {user && (
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700"
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="truncate">{user.email?.split('@')[0]}</span>
+                  </Link>
+                )}
+                <Link
+                  href="/tutorial"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  Tutorial
+                </Link>
+                <Link
+                  href="/pricing"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Pricing
+                </Link>
+                <button
+                  onClick={() => {
+                    toggleTheme();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                </button>
+                {!user && (
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setShowAuthModal(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <User className="w-4 h-4" />
+                    Sign In
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Logo - hidden on mobile/tablet */}
           <Link href="/" className="hidden md:flex flex-shrink-0 items-center gap-3 px-3">
             <h1 className="text-2xl font-serif italic text-gray-800 dark:text-gray-100">Rabona</h1>
@@ -140,69 +203,6 @@ function HomeContent() {
               >
                 Sign In
               </button>
-            )}
-          </div>
-
-          {/* Mobile hamburger menu - only visible on mobile/tablet */}
-          <div ref={mobileMenuRef} className="relative md:hidden flex-shrink-0">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-
-            {/* Dropdown menu with all options */}
-            {mobileMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#2D2E30] rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
-                {user && (
-                  <Link
-                    href="/profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700"
-                  >
-                    <User className="w-4 h-4" />
-                    <span className="truncate">{user.email?.split('@')[0]}</span>
-                  </Link>
-                )}
-                <Link
-                  href="/tutorial"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <HelpCircle className="w-4 h-4" />
-                  Tutorial
-                </Link>
-                <Link
-                  href="/pricing"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  Pricing
-                </Link>
-                <button
-                  onClick={() => {
-                    toggleTheme();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                  {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
-                </button>
-                {!user && (
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setShowAuthModal(true);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                      <User className="w-4 h-4" />
-                      Sign In
-                    </button>
-                  )}
-                </div>
             )}
           </div>
         </div>
