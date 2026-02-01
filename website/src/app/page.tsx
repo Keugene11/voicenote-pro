@@ -71,7 +71,7 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-[#FAF6F1] dark:bg-[#202124] transition-colors overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#FAF6F1] dark:bg-[#202124] border-b border-[#E8E0D5] dark:border-gray-700/50 overflow-hidden">
+      <header className="sticky top-0 z-40 bg-[#FAF6F1] dark:bg-[#202124] border-b border-[#E8E0D5] dark:border-gray-700/50">
         <div className="flex items-center px-2 sm:px-3 py-2 gap-1 sm:gap-2 max-w-full">
           {/* Logo - hidden on mobile/tablet */}
           <Link href="/" className="hidden md:flex flex-shrink-0 items-center gap-3 px-3">
